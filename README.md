@@ -1,5 +1,7 @@
 # Project Memory V2.0 Template & Generator (`.agent/`)
 
+[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md)
+
 > **The Zero-Scan, Git-Aware Context Engine for AI Coding Agents**  
 > Compatible with Hermes Agent, Claude Code, OpenAI Codex, and OpenCode.
 
