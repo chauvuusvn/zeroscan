@@ -207,5 +207,12 @@ Thêm lệnh `python3 .agent/memory.py validate` vào GitHub Actions hoặc pre-
 
 ---
 
+## 👤 Tác giả & Quản trị
+
+**Châu Vũ (Chau Vu)** — [@chauvuusvn](https://github.com/chauvuusvn)  
+*Thiết kế và phát triển cho các hệ sinh thái AI Agent tự chủ cao và quy trình phát triển tinh gọn.*
+
+---
+
 ## 🧪 Bản quyền
 Apache-2.0 / MIT. Thiết kế chuyên biệt cho các quy trình AI Agent tự chủ cao.
