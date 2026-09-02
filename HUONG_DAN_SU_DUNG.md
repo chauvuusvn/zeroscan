@@ -36,10 +36,10 @@ Bên trong mỗi repository chuẩn sẽ có thư mục `.agent/` gồm 8 thành
 ## 🚀 3. HƯỚNG DẪN DÙNG CÔNG CỤ CLI
 
 ### A. Khởi tạo Project Memory cho một Repo mới (`bootstrap.py`)
-Tại thư mục `project-memory-template`, chạy đúng 1 lệnh để scaffold toàn bộ `.agent/`:
+Tại thư mục `zeroscan`, chạy đúng 1 lệnh để scaffold toàn bộ `.agent/`:
 
 ```bash
-python3 /home/hermes/workspace/project-memory-template/bootstrap.py \
+python3 /home/hermes/workspace/zeroscan/bootstrap.py \
   --target /path/to/du-an-moi \
   --name "TenDuAn" \
   --mission "Mô tả ngắn gọn mục tiêu của dự án" \

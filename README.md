@@ -1,4 +1,4 @@
-# Project Memory V2.0 Template & Generator (`.agent/`)
+# ZeroScan (`.agent/`) — Project Memory V2.0
 
 [ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md)
 

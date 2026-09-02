@@ -1,0 +1,61 @@
+{
+  "version": "2.0",
+  "project_name": "zeroscan",
+  "domains": {
+    "core": {
+      "description": "Core business logic and utilities for core",
+      "entry_points": [
+        "core/__init__.py"
+      ],
+      "files": [
+        "core/"
+      ],
+      "tests": [
+        "tests/core/"
+      ],
+      "dependencies": []
+    },
+    "schema": {
+      "description": "Core business logic and utilities for schema",
+      "entry_points": [
+        "schema/__init__.py"
+      ],
+      "files": [
+        "schema/"
+      ],
+      "tests": [
+        "tests/schema/"
+      ],
+      "dependencies": []
+    },
+    "templates": {
+      "description": "Core business logic and utilities for templates",
+      "entry_points": [
+        "templates/__init__.py"
+      ],
+      "files": [
+        "templates/"
+      ],
+      "tests": [
+        "tests/templates/"
+      ],
+      "dependencies": []
+    }
+  },
+  "infrastructure": {
+    "config_files": [
+      "pyproject.toml",
+      "package.json",
+      "Makefile",
+      "Dockerfile",
+      ".env.example"
+    ],
+    "docs": [
+      "README.md",
+      "docs/"
+    ],
+    "cicd": [
+      ".github/workflows/"
+    ]
+  }
+}
