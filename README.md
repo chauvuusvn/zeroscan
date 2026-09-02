@@ -157,5 +157,54 @@ Project Memory V2.0 strictly enforces context budgets:
 
 ---
 
+## ❓ Frequently Asked Questions (FAQ)
+
+<details>
+<summary><b>1. Which AI coding agents are compatible with Project Memory V2.0?</b></summary>
+
+Project Memory V2.0 is designed as a model-agnostic, open specification. It works out-of-the-box with:
+- **Hermes Agent**
+- **Claude Code (Anthropic)**
+- **OpenAI Codex**
+- **OpenCode**
+- **Cursor / Aider / Custom LLM Agent Frameworks**
+</details>
+
+<details>
+<summary><b>2. Does `.agent/` require external Python packages or third-party dependencies?</b></summary>
+
+**No.** The core engine (`memory.py` and `bootstrap.py`) is written in 100% pure Python 3.11+ standard library (`json`, `subprocess`, `hashlib`, `argparse`, `pathlib`). There are zero external `pip` dependencies required to run status checks, validation, or state checkpointing.
+</details>
+
+<details>
+<summary><b>3. How does Project Memory V2.0 prevent context drift across long sessions?</b></summary>
+
+Context drift occurs when agents rely on transient chat memory that gets truncated or diluted. Project Memory moves ground-truth memory out of the prompt window and into the filesystem:
+- Architecture rules are locked in `DECISIONS.md`.
+- Historical progress is permanently recorded in the immutable `TASK_LEDGER.jsonl`.
+- The active session only reads `< 2.5 KB` of state from `BOOT.md`, eliminating hallucination.
+</details>
+
+<details>
+<summary><b>4. Can I apply Project Memory V2.0 to an existing, established repository?</b></summary>
+
+**Yes.** Simply run:
+```bash
+python3 bootstrap.py --target /path/to/existing-repo --domains "auth,api,db,ui"
+```
+Then define your module mappings in `.agent/PROJECT_MAP.json` and set your current phase in `.agent/PROJECT_STATE.json`.
+</details>
+
+<details>
+<summary><b>5. How can I enforce memory integrity in CI/CD pipelines?</b></summary>
+
+Add `python3 .agent/memory.py validate` to your GitHub Actions workflow or pre-commit hooks. It will fail with exit code `1` if:
+- Bootstrap context exceeds 10 KB budget.
+- JSON state files fail schema validation.
+- Uncommitted or unverified changes violate the git commit baseline.
+</details>
+
+---
+
 ## 🧪 License
 Apache-2.0 / MIT. Created for high-autonomy agent workflows.

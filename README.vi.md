@@ -156,5 +156,54 @@ Project Memory V2.0 thực thi nghiêm ngặt hạn ngạch token:
 
 ---
 
+## ❓ Những câu hỏi thường gặp (FAQ)
+
+<details>
+<summary><b>1. Project Memory V2.0 tương thích với những AI Agent nào?</b></summary>
+
+Project Memory V2.0 được thiết kế dưới dạng chuẩn mở, không phụ thuộc vào bất kỳ mô hình cụ thể nào. Hệ thống hoạt động tương thích ngay lập tức với:
+- **Hermes Agent**
+- **Claude Code (Anthropic)**
+- **OpenAI Codex**
+- **OpenCode**
+- **Cursor / Aider / Các framework AI Agent tùy biến**
+</details>
+
+<details>
+<summary><b>2. Thư mục `.agent/` có yêu cầu cài thêm thư viện Python ngoài không?</b></summary>
+
+**Không.** Toàn bộ engine cốt lõi (`memory.py` và `bootstrap.py`) được viết 100% bằng thư viện chuẩn (Standard Library) của Python 3.11+ (`json`, `subprocess`, `hashlib`, `argparse`, `pathlib`). Không cần cài đặt bất kỳ gói `pip` bên ngoài nào để chạy kiểm tra trạng thái, xác thực hay lưu checkpoint.
+</details>
+
+<details>
+<summary><b>3. Làm thế nào để Project Memory V2.0 chống hiện tượng trôi ngữ cảnh (Context Drift)?</b></summary>
+
+Hiện tượng trôi ngữ cảnh xảy ra khi agent phụ thuộc vào bộ nhớ tạm thời của đoạn chat vốn dễ bị cắt xén hoặc pha loãng. Project Memory chuyển toàn bộ dữ liệu thực tế (ground truth) ra ngoài ổ đĩa:
+- Các quy tắc kiến trúc được khóa cứng trong `DECISIONS.md`.
+- Lịch sử tiến độ được ghi bất biến trong sổ cái `TASK_LEDGER.jsonl`.
+- Phiên làm việc chỉ đọc `< 2.5 KB` từ `BOOT.md`, loại bỏ hoàn toàn tình trạng ảo giác.
+</details>
+
+<details>
+<summary><b>4. Tôi có thể áp dụng Project Memory V2.0 cho một dự án đã có sẵn không?</b></summary>
+
+**Hoàn toàn được.** Bạn chỉ cần chạy:
+```bash
+python3 bootstrap.py --target /path/to/existing-repo --domains "auth,api,db,ui"
+```
+Sau đó định nghĩa lại ánh xạ module trong `.agent/PROJECT_MAP.json` và thiết lập phase hiện tại trong `.agent/PROJECT_STATE.json`.
+</details>
+
+<details>
+<summary><b>5. Làm thế nào để tự động kiểm soát tính toàn vẹn bộ nhớ trong CI/CD?</b></summary>
+
+Thêm lệnh `python3 .agent/memory.py validate` vào GitHub Actions hoặc pre-commit hook. Lệnh sẽ báo lỗi (exit code `1`) nếu:
+- Dung lượng bootstrap context vượt quá hạn mức 10 KB.
+- Các file JSON cấu hình bị sai schema.
+- Xuất hiện thay đổi chưa được commit hoặc không khớp với git commit hash đã xác thực.
+</details>
+
+---
+
 ## 🧪 Bản quyền
 Apache-2.0 / MIT. Thiết kế chuyên biệt cho các quy trình AI Agent tự chủ cao.
