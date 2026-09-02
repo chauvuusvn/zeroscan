@@ -35,6 +35,8 @@ When an orchestrator agent delegates tasks to subagents or workers (e.g. special
 | **Worker Subagent Boot** | Re-read full repo per child agent | Load `NEXT_TASK.md` + target files | **~92%** |
 | **Session Memory Drift** | Prompt bloat & hallucination | External append-only ledger & ADRs | **Zero Drift** |
 
+> **📌 Engineering Scope Note:** Token savings specifically measure context initialization, recursive directory crawling, and exploratory search overhead. Tokens required to author or modify actual code files depend naturally on the size of the generated diff.
+
 ---
 
 ## 📁 Standard `.agent/` Architecture

@@ -35,6 +35,8 @@ Khi một agent điều phối (Orchestrator) chia nhỏ công việc cho các s
 | **Khởi động Worker Subagent** | Đọc lại cả repo cho mỗi agent con | Nạp `NEXT_TASK.md` + file đích | **~92%** |
 | **Trôi ngữ cảnh (Memory Drift)** | Phình prompt & sinh ảo giác | Sổ cái bất biến (Ledger) & khóa ADR | **Triệt tiêu trôi nhớ** |
 
+> **📌 Ghi chú kỹ thuật:** Tỉ lệ tiết kiệm token đo lường trực tiếp trên chi phí khởi tạo ngữ cảnh (context initialization), chi phí quét đệ quy cây thư mục và tìm kiếm thăm dò. Lượng token dùng để viết mới hoặc chỉnh sửa các dòng code thực tế vẫn sẽ phụ thuộc vào độ dài của đoạn mã được tạo ra.
+
 ---
 
 ## 📁 Cấu trúc chuẩn `.agent/`
