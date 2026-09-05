@@ -59,6 +59,12 @@ Every compliant project contains an `.agent/` directory with the following struc
 
 ## 🚀 Quick Start: Scaffolding a New Project
 
+### Option A: Instant One-Liner (No Clone Required)
+```bash
+curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/main/bootstrap.py | python3 - -n "Quantum Engine" --domains "engine,storage,network,api" --git-init
+```
+
+### Option B: Using local `bootstrap.py`
 Use `bootstrap.py` to generate a standard `.agent/` memory system in any target repository:
 
 ```bash
@@ -104,20 +110,23 @@ python3 .agent/memory.py validate
 ```
 Validates JSON schemas, git commit alignment, and verifies that `BOOTSTRAP_CONTEXT_BYTES <= 10,240 bytes` (10 KB).
 
-### 3. Checkpoint State Atomically
+### 3. Checkpoint State Atomically & Synchronize Next Task
 ```bash
 python3 .agent/memory.py checkpoint \
   --phase "Phase 2 - Feature Development" \
   --status "IN_PROGRESS" \
-  --active-task "Implement authentication middleware" \
   --record-ledger \
   --task-id "TASK-002" \
   --task-summary "Completed user registration and password hashing" \
   --evidence "pytest_exit_0_hash_abc123" \
-  --test-status "ALL_PASS (48/48)"
+  --test-status "ALL_PASS (48/48)" \
+  --next-task "Build JWT Refresh Token Rotation" \
+  --next-task-id "TASK-003" \
+  --next-task-desc "Implement Redis-backed refresh token rotation with revoke whitelist"
 ```
 - Atomically updates `PROJECT_STATE.json`.
 - Synchronously regenerates `BOOT.md`.
+- Synchronously updates `NEXT_TASK.md` with acceptance criteria.
 - Appends task evidence to `TASK_LEDGER.jsonl`.
 - Recalculates exact context metrics.
 

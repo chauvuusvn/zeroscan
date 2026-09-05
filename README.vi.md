@@ -59,6 +59,12 @@ Mỗi dự án tuân thủ chuẩn đều chứa một thư mục `.agent/` vớ
 
 ## 🚀 Hướng dẫn nhanh: Khởi tạo dự án mới
 
+### Cách 1: Chạy trực tiếp qua One-Liner (Không cần Clone)
+```bash
+curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/main/bootstrap.py | python3 - -n "Quantum Engine" --domains "engine,storage,network,api" --git-init
+```
+
+### Cách 2: Sử dụng file `bootstrap.py` cục bộ
 Sử dụng `bootstrap.py` để tạo hệ thống bộ nhớ `.agent/` chuẩn cho bất kỳ repository nào:
 
 ```bash
@@ -104,20 +110,23 @@ python3 .agent/memory.py validate
 ```
 Kiểm tra JSON schemas, đối soát commit git, và xác nhận `BOOTSTRAP_CONTEXT_BYTES <= 10,240 bytes` (10 KB).
 
-### 3. Checkpoint trạng thái nguyên tử
+### 3. Checkpoint trạng thái nguyên tử & Đồng bộ Task kế tiếp
 ```bash
 python3 .agent/memory.py checkpoint \
   --phase "Phase 2 - Phát triển tính năng" \
   --status "IN_PROGRESS" \
-  --active-task "Xây dựng middleware xác thực người dùng" \
   --record-ledger \
   --task-id "TASK-002" \
   --task-summary "Hoàn thành đăng ký và băm mật khẩu" \
   --evidence "pytest_exit_0_hash_abc123" \
-  --test-status "ALL_PASS (48/48)"
+  --test-status "ALL_PASS (48/48)" \
+  --next-task "Xây dựng cơ chế xoay vòng JWT Refresh Token" \
+  --next-task-id "TASK-003" \
+  --next-task-desc "Tích hợp Redis lưu trữ whitelist và cơ chế thu hồi token"
 ```
 - Cập nhật nguyên tử file `PROJECT_STATE.json`.
 - Đồng bộ tái tạo file `BOOT.md`.
+- Tự động tạo và đồng bộ tiêu chuẩn nghiệm thu trong `NEXT_TASK.md`.
 - Ghi thêm bằng chứng task vào sổ cái `TASK_LEDGER.jsonl`.
 - Tự động tính toán lại dung lượng context.
 

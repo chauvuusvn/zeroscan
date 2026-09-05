@@ -36,10 +36,23 @@ Bên trong mỗi repository chuẩn sẽ có thư mục `.agent/` gồm 8 thành
 ## 🚀 3. HƯỚNG DẪN DÙNG CÔNG CỤ CLI
 
 ### A. Khởi tạo Project Memory cho một Repo mới (`bootstrap.py`)
-Tại thư mục `zeroscan`, chạy đúng 1 lệnh để scaffold toàn bộ `.agent/`:
+
+#### Cách 1: One-Liner trực tiếp (Không cần clone repo ZeroScan)
+```bash
+curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/main/bootstrap.py | python3 - \
+  --target /path/to/du-an-moi \
+  --name "TenDuAn" \
+  --mission "Mô tả ngắn gọn mục tiêu của dự án" \
+  --phase "1" \
+  --domains "core-engine,api-gateway,storage,test-suite" \
+  --git-init
+```
+
+#### Cách 2: Chạy trực tiếp từ file cục bộ
+Tại thư mục `zeroscan`, chạy lệnh để scaffold toàn bộ `.agent/`:
 
 ```bash
-python3 /home/hermes/workspace/zeroscan/bootstrap.py \
+python3 bootstrap.py \
   --target /path/to/du-an-moi \
   --name "TenDuAn" \
   --mission "Mô tả ngắn gọn mục tiêu của dự án" \

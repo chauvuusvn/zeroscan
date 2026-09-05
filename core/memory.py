@@ -114,9 +114,9 @@ def calculate_metrics(agent_dir: Path) -> Dict[str, Any]:
         "bootstrap_context_bytes": bootstrap_bytes,
         "total_agent_system_bytes": total_system_bytes,
         "completed_tasks_count": task_count,
-        "file_sizes": file_sizes,
         "budget_limit_bytes": MAX_BOOTSTRAP_CONTEXT_BYTES,
         "budget_used_percent": round((bootstrap_bytes / MAX_BOOTSTRAP_CONTEXT_BYTES) * 100, 2),
+        "file_sizes": file_sizes,
     }
 
 
@@ -178,6 +178,64 @@ def generate_boot_markdown(state: Dict[str, Any]) -> str:
     return content
 
 
+def generate_next_task_markdown(
+    task_id: str,
+    phase: str,
+    title: str,
+    description: str = "",
+    criteria: Optional[List[str]] = None,
+    target_files: Optional[List[str]] = None,
+    verification: Optional[List[str]] = None,
+) -> str:
+    """Generates a standardized NEXT_TASK.md specification."""
+    desc_str = description.strip() if description else f"Execute requirements and verify tests for {title}."
+
+    crit_list = criteria or [
+        "Requirements defined in task goal are implemented.",
+        "Code follows existing project style and patterns.",
+        "Unit/integration tests pass with 0 errors.",
+        "Memory state checkpointed via `.agent/memory.py checkpoint`.",
+    ]
+    crit_str = "\n".join(f"- [ ] {c}" for c in crit_list)
+
+    files_list = target_files or ["Consult `.agent/PROJECT_MAP.json` for domain paths."]
+    files_str = "\n".join(f"- `{f}`" if not f.startswith("-") else f for f in files_list)
+
+    verif_list = verification or ["pytest", "python3 .agent/memory.py validate"]
+    verif_str = "\n".join(verif_list)
+
+    return f"""# Active Task Specification
+
+## Task Metadata
+- **TASK ID**: {task_id}
+- **PHASE**: {phase}
+- **TITLE**: {title}
+- **STATUS**: IN_PROGRESS
+
+---
+
+## 🎯 Goal & Description
+{desc_str}
+
+---
+
+## 📋 Acceptance Criteria
+{crit_str}
+
+---
+
+## 📂 Target Files
+{files_str}
+
+---
+
+## 🧪 Verification Commands
+```bash
+{verif_str}
+```
+"""
+
+
 def validate_agent_memory(agent_dir: Path) -> Tuple[bool, List[str], List[str]]:
     """Validates memory integrity against rules and schemas."""
     errors = []
@@ -188,65 +246,83 @@ def validate_agent_memory(agent_dir: Path) -> Tuple[bool, List[str], List[str]]:
         return False, errors, warnings
 
     # 1. Check required files
-    for filename in REQUIRED_AGENT_FILES:
-        fp = agent_dir / filename
-        if not fp.exists():
-            errors.append(f"Missing required agent memory file: {filename}")
+    for req_file in REQUIRED_AGENT_FILES:
+        fp = agent_dir / req_file
+        if not fp.is_file():
+            errors.append(f"Missing required memory file: {req_file}")
 
-    # 2. Check PROJECT_STATE.json schema
+    # If critical files missing, stop early
+    if errors:
+        return False, errors, warnings
+
+    # 2. Validate JSON syntax and required keys
     state_file = agent_dir / "PROJECT_STATE.json"
-    state_data = {}
-    if state_file.exists():
-        try:
-            state_data = load_json(state_file)
-            required_state_keys = [
-                "version", "project_name", "mission", "current_phase",
-                "status", "active_task", "verified_commit", "last_updated",
-                "metrics", "constraints"
-            ]
-            for k in required_state_keys:
-                if k not in state_data:
-                    errors.append(f"PROJECT_STATE.json missing required key: {k}")
-            if state_data.get("version") != "2.0":
-                errors.append(f"Unsupported schema version: {state_data.get('version')} (expected '2.0')")
-        except json.JSONDecodeError as e:
-            errors.append(f"PROJECT_STATE.json invalid JSON: {e}")
-
-    # 3. Check PROJECT_MAP.json schema
     map_file = agent_dir / "PROJECT_MAP.json"
-    if map_file.exists():
-        try:
-            map_data = load_json(map_file)
-            required_map_keys = ["version", "project_name", "domains", "infrastructure"]
-            for k in required_map_keys:
-                if k not in map_data:
-                    errors.append(f"PROJECT_MAP.json missing required key: {k}")
-        except json.JSONDecodeError as e:
-            errors.append(f"PROJECT_MAP.json invalid JSON: {e}")
 
-    # 4. Check TASK_LEDGER.jsonl format
+    try:
+        state = load_json(state_file)
+        state_req_keys = [
+            "version",
+            "project_name",
+            "mission",
+            "current_phase",
+            "status",
+            "active_task",
+            "verified_commit",
+            "last_updated",
+            "metrics",
+        ]
+        for k in state_req_keys:
+            if k not in state:
+                errors.append(f"PROJECT_STATE.json missing required key: '{k}'")
+    except Exception as e:
+        errors.append(f"PROJECT_STATE.json is invalid JSON: {e}")
+        state = {}
+
+    try:
+        pmap = load_json(map_file)
+        map_req_keys = ["version", "project_name", "domains", "infrastructure"]
+        for k in map_req_keys:
+            if k not in pmap:
+                errors.append(f"PROJECT_MAP.json missing required key: '{k}'")
+    except Exception as e:
+        errors.append(f"PROJECT_MAP.json is invalid JSON: {e}")
+
+    # 3. Validate TASK_LEDGER.jsonl format
     ledger_file = agent_dir / "TASK_LEDGER.jsonl"
-    if ledger_file.exists():
-        try:
-            with open(ledger_file, "r", encoding="utf-8") as f:
-                for line_no, line in enumerate(f, 1):
-                    line_str = line.strip()
-                    if not line_str:
-                        continue
-                    try:
-                        record = json.loads(line_str)
-                        for rk in ["task_id", "phase", "timestamp", "commit", "summary"]:
-                            if rk not in record:
-                                warnings.append(f"TASK_LEDGER.jsonl line {line_no} missing standard field: '{rk}'")
-                    except json.JSONDecodeError:
-                        errors.append(f"TASK_LEDGER.jsonl invalid JSON at line {line_no}")
-        except Exception as e:
-            errors.append(f"Failed to read TASK_LEDGER.jsonl: {e}")
+    ledger_count = 0
+    try:
+        with open(ledger_file, "r", encoding="utf-8") as f:
+            for line_no, line in enumerate(f, 1):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    record = json.loads(line)
+                    ledger_count += 1
+                    for lk in ["task_id", "timestamp", "summary"]:
+                        if lk not in record:
+                            warnings.append(f"TASK_LEDGER.jsonl line {line_no} missing key '{lk}'")
+                except json.JSONDecodeError:
+                    errors.append(f"TASK_LEDGER.jsonl line {line_no} is not valid JSON")
+    except Exception as e:
+        errors.append(f"Failed to read TASK_LEDGER.jsonl: {e}")
 
-    # 5. Check Git alignment
+    # 4. Check synchronization between BOOT.md and PROJECT_STATE.json
+    boot_file = agent_dir / "BOOT.md"
+    try:
+        boot_content = boot_file.read_text(encoding="utf-8")
+        if state.get("project_name") and state["project_name"] not in boot_content:
+            warnings.append("BOOT.md project_name does not match PROJECT_STATE.json")
+        if state.get("current_phase") and state["current_phase"] not in boot_content:
+            warnings.append("BOOT.md current_phase is out of sync with PROJECT_STATE.json")
+    except Exception as e:
+        errors.append(f"Failed to read BOOT.md: {e}")
+
+    # 5. Check git commit synchronization
     repo_root = agent_dir.parent
     git_info = get_git_status_summary(repo_root)
-    verified_commit = state_data.get("verified_commit")
+    verified_commit = state.get("verified_commit")
     if verified_commit and verified_commit != "uncommitted" and git_info["commit"] != "uncommitted":
         if not git_info["commit"].startswith(verified_commit) and not verified_commit.startswith(git_info["commit"]):
             warnings.append(
@@ -268,7 +344,7 @@ def validate_agent_memory(agent_dir: Path) -> Tuple[bool, List[str], List[str]]:
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    agent_dir = find_agent_dir(Path(args.target) if args.target else None)
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
     if not agent_dir.exists():
         print(f"[ERROR] .agent directory not found at: {agent_dir}")
         return 1
@@ -290,13 +366,13 @@ def cmd_status(args: argparse.Namespace) -> int:
     print(f"Status           : {state.get('status')}")
     print(f"Active Task      : {state.get('active_task')}")
     print(f"Verified Commit  : {state.get('verified_commit')}")
-    git_commit_str = str(git_info.get("commit", "unknown"))
-    git_head_short = git_commit_str[:8] if git_commit_str != "unknown" else "unknown"
-    print(f"Git HEAD         : {git_head_short} (Branch: {git_info.get('branch')}, Dirty: {git_info.get('is_dirty')})")
-    print(f"Last Updated     : {state.get('last_updated')}")
+    print(f"Git Current HEAD : {git_info['commit']} (dirty={git_info['is_dirty']})")
+    print(f"Last Checkpoint  : {state.get('last_updated')}")
     print("-" * 60)
-    print("SYSTEM METRICS & BUDGET:")
-    print(f"Bootstrap Context: {metrics['bootstrap_context_bytes']} / {metrics['budget_limit_bytes']} bytes ({metrics['budget_used_percent']}%)")
+    print("BUDGET & SIZE METRICS:")
+    print(
+        f"Bootstrap Context: {metrics['bootstrap_context_bytes']} / {metrics['budget_limit_bytes']} bytes ({metrics['budget_used_percent']}%)"
+    )
     print(f"Total Agent Files: {metrics['total_agent_system_bytes']} bytes")
     print(f"Tasks Completed  : {metrics['completed_tasks_count']}")
     print("-" * 60)
@@ -308,7 +384,7 @@ def cmd_status(args: argparse.Namespace) -> int:
 
 
 def cmd_validate(args: argparse.Namespace) -> int:
-    agent_dir = find_agent_dir(Path(args.target) if args.target else None)
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
     print(f"🔍 Validating Project Memory V2.0 at: {agent_dir} ...")
     is_valid, errors, warnings = validate_agent_memory(agent_dir)
 
@@ -330,9 +406,9 @@ def cmd_validate(args: argparse.Namespace) -> int:
 
 
 def cmd_metrics(args: argparse.Namespace) -> int:
-    agent_dir = find_agent_dir(Path(args.target) if args.target else None)
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
     metrics = calculate_metrics(agent_dir)
-    if args.json:
+    if getattr(args, "json", False):
         print(json.dumps(metrics, indent=2))
     else:
         print(f"Bootstrap Context Bytes : {metrics['bootstrap_context_bytes']} B")
@@ -344,7 +420,7 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 
 
 def cmd_checkpoint(args: argparse.Namespace) -> int:
-    agent_dir = find_agent_dir(Path(args.target) if args.target else None)
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
     state_file = agent_dir / "PROJECT_STATE.json"
     if not state_file.exists():
         print(f"[ERROR] PROJECT_STATE.json not found in {agent_dir}")
@@ -383,15 +459,31 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
             f.write(json.dumps(ledger_entry) + "\n")
         print(f"📝 Appended record {task_id} to TASK_LEDGER.jsonl")
 
+    # Update NEXT_TASK.md if requested
+    if getattr(args, "next_task", None):
+        next_task_title = args.next_task
+        state["active_task"] = next_task_title
+        next_task_id = getattr(args, "next_task_id", None) or f"TASK-{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}"
+        next_task_file = agent_dir / "NEXT_TASK.md"
+        next_task_content = generate_next_task_markdown(
+            task_id=next_task_id,
+            phase=state["current_phase"],
+            title=next_task_title,
+            description=getattr(args, "next_task_desc", "") or "",
+        )
+        atomic_write_text(next_task_file, next_task_content)
+        print(f"📋 Synchronized NEXT_TASK.md for {next_task_id}: {next_task_title}")
+
     # Update metrics inside state
     metrics = calculate_metrics(agent_dir)
     state["metrics"]["bootstrap_context_bytes"] = metrics["bootstrap_context_bytes"]
     state["metrics"]["total_agent_system_bytes"] = metrics["total_agent_system_bytes"]
     state["metrics"]["completed_tasks_count"] = metrics["completed_tasks_count"]
+
     if args.test_status:
         state["metrics"]["test_suite_status"] = args.test_status
 
-    # Write state atomically
+    # Write synchronized PROJECT_STATE.json
     atomic_write_json(state_file, state)
 
     # Synchronize BOOT.md
@@ -399,7 +491,7 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
     boot_content = generate_boot_markdown(state)
     atomic_write_text(boot_file, boot_content)
 
-    # Recalculate and persist updated metrics after BOOT.md rewrite
+    # Recalculate and persist updated metrics after file rewrites
     updated_metrics = calculate_metrics(agent_dir)
     state["metrics"]["bootstrap_context_bytes"] = updated_metrics["bootstrap_context_bytes"]
     state["metrics"]["total_agent_system_bytes"] = updated_metrics["total_agent_system_bytes"]
@@ -413,7 +505,7 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
 
 
 def cmd_add_decision(args: argparse.Namespace) -> int:
-    agent_dir = find_agent_dir(Path(args.target) if args.target else None)
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
     decisions_file = agent_dir / "DECISIONS.md"
     if not decisions_file.exists():
         print(f"[ERROR] DECISIONS.md not found in {agent_dir}")
@@ -438,33 +530,36 @@ def cmd_add_decision(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(
-        description="Project Memory V2.0 Engine CLI",
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
+    common_parser = argparse.ArgumentParser(add_help=False)
+    common_parser.add_argument(
         "--target",
         "-t",
         help="Target repository or .agent path (defaults to current directory search)",
     )
 
+    parser = argparse.ArgumentParser(
+        parents=[common_parser],
+        description="Project Memory V2.0 Engine CLI",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+
     subparsers = parser.add_subparsers(dest="command", help="Available subcommands")
 
     # status
-    p_status = subparsers.add_parser("status", help="Show project memory state and budget metrics")
+    p_status = subparsers.add_parser("status", parents=[common_parser], help="Show project memory state and budget metrics")
     p_status.set_defaults(func=cmd_status)
 
     # validate
-    p_val = subparsers.add_parser("validate", help="Validate memory integrity, schemas, and context budget")
+    p_val = subparsers.add_parser("validate", parents=[common_parser], help="Validate memory integrity, schemas, and context budget")
     p_val.set_defaults(func=cmd_validate)
 
     # metrics
-    p_metrics = subparsers.add_parser("metrics", help="Calculate context size metrics")
+    p_metrics = subparsers.add_parser("metrics", parents=[common_parser], help="Calculate context size metrics")
     p_metrics.add_argument("--json", action="store_true", help="Output metrics as JSON")
     p_metrics.set_defaults(func=cmd_metrics)
 
     # checkpoint
-    p_cp = subparsers.add_parser("checkpoint", help="Atomically update state and synchronize BOOT.md")
+    p_cp = subparsers.add_parser("checkpoint", parents=[common_parser], help="Atomically update state and synchronize BOOT.md")
     p_cp.add_argument("--phase", help="Current project phase")
     p_cp.add_argument("--status", choices=["INITIALIZING", "IN_PROGRESS", "PAUSED", "COMPLETED", "BLOCKED"], help="Execution status")
     p_cp.add_argument("--active-task", help="Active task description")
@@ -474,10 +569,13 @@ def main() -> int:
     p_cp.add_argument("--task-id", help="Task ID for ledger (e.g. TASK-002)")
     p_cp.add_argument("--task-summary", help="Summary for ledger record")
     p_cp.add_argument("--evidence", help="Verification evidence tag or output hash")
+    p_cp.add_argument("--next-task", help="Title of next active task (updates NEXT_TASK.md and state)")
+    p_cp.add_argument("--next-task-id", help="Task ID for next active task (e.g. TASK-003)")
+    p_cp.add_argument("--next-task-desc", help="Goal and description for next active task")
     p_cp.set_defaults(func=cmd_checkpoint)
 
     # add-decision
-    p_adr = subparsers.add_parser("add-decision", help="Append an ADR to DECISIONS.md")
+    p_adr = subparsers.add_parser("add-decision", parents=[common_parser], help="Append an ADR to DECISIONS.md")
     p_adr.add_argument("--id", required=True, help="ADR ID (e.g. ADR-002)")
     p_adr.add_argument("--title", required=True, help="Decision title")
     p_adr.add_argument("--status", default="LOCKED", choices=["LOCKED", "PROPOSED", "DEPRECATED", "SUPERSEDED"], help="Status")

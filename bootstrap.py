@@ -2,21 +2,46 @@
 """
 Project Memory V2.0 Bootstrap Generator (bootstrap.py)
 Automated scaffolding CLI to initialize standard .agent/ memory structure into any project repository.
-Zero external dependencies (pure Python 3.11+).
+Zero external dependencies (pure Python 3.11+). Supports standalone curl execution.
 """
 
 import argparse
 import datetime
+import importlib.util
 import json
 import os
 import shutil
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+try:
+    TEMPLATE_ROOT = Path(__file__).resolve().parent
+except Exception:
+    TEMPLATE_ROOT = Path.cwd()
 
-TEMPLATE_ROOT = Path(__file__).resolve().parent
+RAW_GITHUB_BASE = "https://raw.githubusercontent.com/chauvuusvn/zeroscan/main"
+
+
+def get_template_bytes(rel_path: str) -> bytes:
+    """Loads template bytes from local repository directory or downloads via GitHub raw fallback."""
+    try:
+        local_file = TEMPLATE_ROOT / rel_path
+        if local_file.is_file():
+            return local_file.read_bytes()
+    except Exception:
+        pass
+
+    # Remote fallback for standalone / pipe execution
+    url = f"{RAW_GITHUB_BASE}/{rel_path}"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "ZeroScan-Bootstrap/2.0"})
+        with urllib.request.urlopen(req, timeout=15) as response:
+            return response.read()
+    except Exception as e:
+        raise RuntimeError(f"Could not load template '{rel_path}' locally or from {url}: {e}")
 
 
 def get_git_commit(repo_path: Path) -> str:
@@ -57,7 +82,7 @@ def build_project_map(project_name: str, domains_list: List[str], repo_root: Pat
             continue
         # Guess common file/test paths
         domain_files = [f"src/{d_clean}/"] if (repo_root / "src" / d_clean).exists() else [f"{d_clean}/"]
-        domain_tests = [f"tests/test_{d_clean}.py"] if (repo_root / "tests").exists() else [f"tests/{d_clean}/"]
+        domain_tests = [f"tests/test_{d_clean}.py"] if (repo_root / "tests").exists() else [f"tests/"]
         domains[d_clean] = {
             "description": f"Core business logic and utilities for {d_clean}",
             "entry_points": [f"{d_clean}/__init__.py" if (repo_root / d_clean).exists() else f"src/{d_clean}/__init__.py"],
@@ -110,7 +135,7 @@ def bootstrap_project_memory(
     if agent_dir.exists():
         if not force:
             raise FileExistsError(
-                f".agent directory already exists at {agent_dir}. Use --force to overwrite."
+                f"Directory '{agent_dir}' already exists. Use --force to overwrite."
             )
         else:
             shutil.rmtree(agent_dir)
@@ -123,34 +148,32 @@ def bootstrap_project_memory(
     today_str = datetime.datetime.now().strftime("%Y-%m-%d")
 
     # 1. Copy MEMORY_PROTOCOL.md
-    protocol_src = TEMPLATE_ROOT / "core" / "MEMORY_PROTOCOL.md"
-    protocol_dst = agent_dir / "MEMORY_PROTOCOL.md"
-    shutil.copyfile(protocol_src, protocol_dst)
+    protocol_bytes = get_template_bytes("core/MEMORY_PROTOCOL.md")
+    (agent_dir / "MEMORY_PROTOCOL.md").write_bytes(protocol_bytes)
 
     # 2. Copy memory.py engine
-    memory_src = TEMPLATE_ROOT / "core" / "memory.py"
+    memory_bytes = get_template_bytes("core/memory.py")
     memory_dst = agent_dir / "memory.py"
-    shutil.copyfile(memory_src, memory_dst)
+    memory_dst.write_bytes(memory_bytes)
     memory_dst.chmod(0o755)
 
     # 3. Create DECISIONS.md
-    decisions_tpl = TEMPLATE_ROOT / "templates" / "DECISIONS.md"
-    decisions_content = decisions_tpl.read_text(encoding="utf-8").replace("{{DATE}}", today_str)
+    decisions_content = get_template_bytes("templates/DECISIONS.md").decode("utf-8").replace("{{DATE}}", today_str)
     (agent_dir / "DECISIONS.md").write_text(decisions_content, encoding="utf-8")
 
     # 4. Create TASK_LEDGER.jsonl
-    ledger_tpl = TEMPLATE_ROOT / "templates" / "TASK_LEDGER.jsonl"
     ledger_content = (
-        ledger_tpl.read_text(encoding="utf-8")
+        get_template_bytes("templates/TASK_LEDGER.jsonl")
+        .decode("utf-8")
         .replace("{{TIMESTAMP}}", now_iso)
         .replace("{{VERIFIED_COMMIT}}", commit)
     )
     (agent_dir / "TASK_LEDGER.jsonl").write_text(ledger_content, encoding="utf-8")
 
     # 5. Create NEXT_TASK.md
-    next_task_tpl = TEMPLATE_ROOT / "templates" / "NEXT_TASK.md"
     next_task_content = (
-        next_task_tpl.read_text(encoding="utf-8")
+        get_template_bytes("templates/NEXT_TASK.md")
+        .decode("utf-8")
         .replace("{{TASK_ID}}", "TASK-001")
         .replace("{{CURRENT_PHASE}}", phase)
         .replace("{{TASK_TITLE}}", "Bootstrap project architecture and verify memory system")
@@ -165,12 +188,13 @@ def bootstrap_project_memory(
 
     # 6. Create PROJECT_MAP.json
     project_map_data = build_project_map(name, domains, target_dir)
-    with open(agent_dir / "PROJECT_MAP.json", "w", encoding="utf-8") as f:
-        json.dump(project_map_data, f, indent=2, ensure_ascii=False)
-        f.write("\n")
+    (agent_dir / "PROJECT_MAP.json").write_text(
+        json.dumps(project_map_data, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
-    # 7. Create PROJECT_STATE.json (preliminary)
-    state_data: Dict[str, Any] = {
+    # 7. Create PROJECT_STATE.json
+    state_data = {
         "version": "2.0",
         "project_name": name,
         "mission": mission,
@@ -183,22 +207,23 @@ def bootstrap_project_memory(
             "bootstrap_context_bytes": 0,
             "total_agent_system_bytes": 0,
             "completed_tasks_count": 1,
-            "test_suite_status": "PENDING_SETUP"
+            "test_suite_status": "PENDING_SETUP",
         },
         "constraints": [
             "Keep bootstrap context <= 10 KB",
             "Follow MEMORY_PROTOCOL.md strictly",
-            "Verify all changes with tests before checkpointing"
-        ]
+            "Verify all changes with tests before checkpointing",
+        ],
     }
-    with open(agent_dir / "PROJECT_STATE.json", "w", encoding="utf-8") as f:
-        json.dump(state_data, f, indent=2, ensure_ascii=False)
-        f.write("\n")
+    (agent_dir / "PROJECT_STATE.json").write_text(
+        json.dumps(state_data, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+    )
 
-    # 8. Create BOOT.md
-    boot_tpl = TEMPLATE_ROOT / "templates" / "BOOT.md"
+    # 8. Create Level 0 BOOT.md
     boot_content = (
-        boot_tpl.read_text(encoding="utf-8")
+        get_template_bytes("templates/BOOT.md")
+        .decode("utf-8")
         .replace("{{PROJECT_NAME}}", name)
         .replace("{{MISSION}}", mission)
         .replace("{{CURRENT_PHASE}}", phase)
@@ -209,13 +234,15 @@ def bootstrap_project_memory(
     )
     (agent_dir / "BOOT.md").write_text(boot_content, encoding="utf-8")
 
-    # 9. Calculate initial metrics and update PROJECT_STATE.json
-    from core.memory import calculate_metrics, atomic_write_json
-
-    metrics = calculate_metrics(agent_dir)
-    state_data["metrics"]["bootstrap_context_bytes"] = metrics["bootstrap_context_bytes"]
-    state_data["metrics"]["total_agent_system_bytes"] = metrics["total_agent_system_bytes"]
-    atomic_write_json(agent_dir / "PROJECT_STATE.json", state_data)
+    # 9. Dynamically import memory engine to compute metrics and sync state
+    spec = importlib.util.spec_from_file_location("agent_memory", agent_dir / "memory.py")
+    if spec and spec.loader:
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        metrics = mod.calculate_metrics(agent_dir)
+        state_data["metrics"]["bootstrap_context_bytes"] = metrics["bootstrap_context_bytes"]
+        state_data["metrics"]["total_agent_system_bytes"] = metrics["total_agent_system_bytes"]
+        mod.atomic_write_json(agent_dir / "PROJECT_STATE.json", state_data)
 
     return agent_dir
 
@@ -246,30 +273,31 @@ def main() -> int:
         "--phase",
         "-p",
         default="Phase 1 - Architecture & Setup",
-        help="Initial project phase",
+        help="Initial phase name",
     )
     parser.add_argument(
         "--domains",
         "-d",
-        default="core",
-        help="Comma-separated functional domain names (e.g. 'core,api,storage')",
+        default="core,auth,api,db",
+        help="Comma-separated initial domain list (e.g. core,auth,api,db)",
     )
     parser.add_argument(
         "--force",
         "-f",
         action="store_true",
-        help="Force overwrite existing .agent directory",
+        help="Overwrite existing .agent/ directory",
     )
     parser.add_argument(
         "--git-init",
         action="store_true",
-        help="Automatically initialize git repo in target directory if not present",
+        help="Run git init if target directory is not a git repository",
     )
 
     args = parser.parse_args()
 
     target_path = Path(args.target).resolve()
-    project_name = args.name or target_path.name or "Unnamed-Project"
+    project_name = args.name or target_path.name
+
     domain_list = [d.strip() for d in args.domains.split(",") if d.strip()]
 
     print("=" * 65)
@@ -292,41 +320,42 @@ def main() -> int:
             force=args.force,
             auto_git_init=args.git_init,
         )
+    except FileExistsError as fee:
+        print(f"\n❌ [ERROR] {fee}")
+        return 1
+    except Exception as e:
+        print(f"\n❌ [ERROR] Scaffolding failed: {e}")
+        return 1
 
-        # Run validation on the newly generated memory
-        from core.memory import validate_agent_memory, calculate_metrics
+    print(f"\n✨ Scaffolding complete! Structure created at `.agent/`:")
+    for item in sorted(agent_dir.glob("*")):
+        if item.is_file():
+            print(f"  ├── {item.name:<20} ({item.stat().st_size:>5} bytes)")
 
-        is_valid, errors, warnings = validate_agent_memory(agent_dir)
-        metrics = calculate_metrics(agent_dir)
-
-        print("\n✨ Scaffolding complete! Structure created at `.agent/`:")
-        for item in sorted(agent_dir.iterdir()):
-            size_b = item.stat().st_size
-            print(f"  ├── {item.name:<20} ({size_b:>5} bytes)")
-
+    # Validate generated memory
+    spec = importlib.util.spec_from_file_location("agent_memory", agent_dir / "memory.py")
+    if spec and spec.loader:
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        is_valid, errors, warnings = mod.validate_agent_memory(agent_dir)
+        metrics = mod.calculate_metrics(agent_dir)
         print("\n📊 Initial Context Budget Metrics:")
-        print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / 10,240 bytes ({metrics['budget_used_percent']}%)")
+        print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / {metrics['budget_limit_bytes']} bytes ({metrics['budget_used_percent']}%)")
         print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
 
         if is_valid:
             print("\n✅ Verification PASSED: New memory system is fully compliant with V2.0 standard.")
-            print("\n💡 Quick Start Guide for Agents:")
-            print("   1. Boot session   : Read `.agent/BOOT.md` (< 1 KB)")
-            print("   2. Check status   : `python3 .agent/memory.py status`")
-            print("   3. Validate state : `python3 .agent/memory.py validate`")
-            print("   4. Save progress  : `python3 .agent/memory.py checkpoint --phase \"...\" --status IN_PROGRESS`")
-            return 0
         else:
-            print("\n⚠️ Verification finished with warnings/errors:")
-            for e in errors:
-                print(f"  ❌ {e}")
-            for w in warnings:
-                print(f"  ⚠️  {w}")
-            return 1
+            print(f"\n⚠️  Verification Warnings/Errors: {len(errors)} errors, {len(warnings)} warnings.")
 
-    except Exception as e:
-        print(f"\n❌ Error during bootstrap: {e}", file=sys.stderr)
-        return 1
+    print("\n💡 Quick Start Guide for Agents:")
+    print("   1. Boot session   : Read `.agent/BOOT.md` (< 1 KB)")
+    print("   2. Check status   : `python3 .agent/memory.py status`")
+    print("   3. Validate state : `python3 .agent/memory.py validate`")
+    print("   4. Save progress  : `python3 .agent/memory.py checkpoint --phase \"...\" --status IN_PROGRESS`")
+    print("=" * 65)
+
+    return 0
 
 
 if __name__ == "__main__":
