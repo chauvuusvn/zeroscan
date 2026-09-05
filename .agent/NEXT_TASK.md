@@ -1,15 +1,15 @@
 # Active Task Specification
 
 ## Task Metadata
-- **TASK ID**: TASK-001
-- **PHASE**: Phase 1 - Architecture & Setup
-- **TITLE**: Bootstrap project architecture and verify memory system
+- **TASK ID**: TASK-003
+- **PHASE**: Phase 2 - Engine Maturation
+- **TITLE**: Automated CI/CD validation tests
 - **STATUS**: IN_PROGRESS
 
 ---
 
 ## 🎯 Goal & Description
-Initialize foundational project structure for zeroscan and verify initial test/build setup.
+Setup GitHub Actions workflow to run validate on all PRs and commits
 
 ---
 
@@ -22,13 +22,12 @@ Initialize foundational project structure for zeroscan and verify initial test/b
 ---
 
 ## 📂 Target Files
-- `.agent/PROJECT_MAP.json`
-- `README.md`
-- `pyproject.toml`
+- `Consult `.agent/PROJECT_MAP.json` for domain paths.`
 
 ---
 
 ## 🧪 Verification Commands
 ```bash
+pytest
 python3 .agent/memory.py validate
 ```
