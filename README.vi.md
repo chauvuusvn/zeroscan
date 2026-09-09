@@ -1,6 +1,6 @@
 # ZeroScan (`.agent/`) — Project Memory V2.0
 
-[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md)
+[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Complete Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md)
 
 > **Cơ chế quản trị ngữ cảnh Zero-Scan gắn kết với Git dành cho AI Coding Agents**  
 > Tương thích hoàn toàn với Hermes Agent, Claude Code, OpenAI Codex, và OpenCode.
