@@ -219,7 +219,7 @@ Add `python3 .agent/memory.py validate` to your GitHub Actions workflow or pre-c
 
 ## 👤 Author & Maintainer
 
-**Chau Vu (Châu Vũ)** — [@chauvuusvn](https://github.com/chauvuusvn)  
+**Justin** — [@chauvuusvn](https://github.com/chauvuusvn)  
 *Architected for high-autonomy multi-agent ecosystems and lean AI workflows.*
 
 ---
