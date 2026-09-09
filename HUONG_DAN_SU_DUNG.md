@@ -1,6 +1,6 @@
 # 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG PROJECT MEMORY V2.0
 
-> **Dành cho:** Châu Vũ & Toàn bộ AI Agents (Hermes, Hagi, Claude Code, OpenCode, Codex).  
+> **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Hermes, Claude Code, OpenAI Codex, OpenCode).  
 > **Phiên bản:** `v2.0 (Frozen Standard)` — Zero External Dependencies (Pure Python 3.11+ Stdlib).
 
 ---
