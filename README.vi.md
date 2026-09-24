@@ -147,6 +147,43 @@ python3 .agent/memory.py add-decision \
 
 ---
 
+## 🔌 Tích Hợp Model Context Protocol (MCP) Server
+
+Zero-Scan tích hợp sẵn máy chủ **Model Context Protocol (MCP)** chuẩn quốc tế, giúp kết nối 1-chạm với **Cursor**, **Claude Desktop**, **Windsurf**, **Trae**, và **Claude Code**.
+
+### Cấu hình trong Claude Desktop (`claude_desktop_config.json`) hoặc Cursor:
+```json
+{
+  "mcpServers": {
+    "zeroscan": {
+      "command": "npx",
+      "args": ["-y", "zeroscan-mcp"]
+    }
+  }
+}
+```
+*Hoặc khởi chạy trực tiếp bằng Python:*
+```json
+{
+  "mcpServers": {
+    "zeroscan": {
+      "command": "python3",
+      "args": ["-m", "core.mcp_server"]
+    }
+  }
+}
+```
+
+### 🛠️ Các MCP Tools cung cấp cho Agent:
+- `zeroscan_boot`: Nạp Level 0 Boot Anchor tức thì (< 1 KB / ~500 tokens), loại bỏ hoàn toàn quét cây thư mục.
+- `zeroscan_get_map`: Tra cứu bản đồ kiến trúc GPS đa tầng (`PROJECT_MAP.json`).
+- `zeroscan_get_state`: Đọc tiến độ milestone, git hash và trạng thái thực thi.
+- `zeroscan_get_next_task`: Lấy nhiệm vụ tức thời tiếp theo (`NEXT_TASK.md`).
+- `zeroscan_record_decision`: Ghi nhận quyết định kiến trúc ADR vào `DECISIONS.md`.
+- `zeroscan_validate`: Kiểm toán thực thi hạn mức ngữ cảnh `<= 10 KB`.
+
+---
+
 ## 📊 Hạn mức kích thước ngữ cảnh (Context Budget)
 
 Project Memory V2.0 thực thi nghiêm ngặt hạn ngạch token:

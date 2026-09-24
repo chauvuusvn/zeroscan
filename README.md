@@ -147,6 +147,43 @@ python3 .agent/memory.py add-decision \
 
 ---
 
+## 🔌 Model Context Protocol (MCP) Server Integration
+
+Zero-Scan includes a native **Model Context Protocol (MCP)** server for 1-click integration with **Cursor**, **Claude Desktop**, **Windsurf**, **Trae**, and **Claude Code**.
+
+### Setup in Claude Desktop (`claude_desktop_config.json`) / Cursor:
+```json
+{
+  "mcpServers": {
+    "zeroscan": {
+      "command": "npx",
+      "args": ["-y", "zeroscan-mcp"]
+    }
+  }
+}
+```
+*Or using Python directly:*
+```json
+{
+  "mcpServers": {
+    "zeroscan": {
+      "command": "python3",
+      "args": ["-m", "core.mcp_server"]
+    }
+  }
+}
+```
+
+### 🛠️ Exposed MCP Tools:
+- `zeroscan_boot`: Instant Level 0 Boot Anchor (< 1 KB / ~500 tokens). Eliminates repository scanning.
+- `zeroscan_get_map`: Structured architectural GPS map (`PROJECT_MAP.json`).
+- `zeroscan_get_state`: Milestone progress, git hash alignment, and execution state.
+- `zeroscan_get_next_task`: Immediate actionable next task (`NEXT_TASK.md`).
+- `zeroscan_record_decision`: Append ADRs to `DECISIONS.md` across sessions.
+- `zeroscan_validate`: Enforce `<= 10 KB` context budget.
+
+---
+
 ## 📊 Context Size Metrics & Limits
 
 Project Memory V2.0 strictly enforces context budgets:

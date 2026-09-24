@@ -1,0 +1,32 @@
+{
+  "name": "zeroscan-mcp",
+  "version": "2.0.0",
+  "description": "Zero-Scan Model Context Protocol (MCP) Server for AI Coding Agents (Cursor, Claude Desktop, Windsurf, Trae, Claude Code)",
+  "main": "index.js",
+  "bin": {
+    "zeroscan-mcp": "./bin/zeroscan-mcp.js"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "zeroscan",
+    "context-window",
+    "token-optimization",
+    "cursor",
+    "claude-desktop",
+    "ai-coding-agents"
+  ],
+  "author": "Chau Vu / CPF-FAMILY <ChauVuUSVN@gmail.com>",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chauvuusvn/zeroscan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chauvuusvn/zeroscan/issues"
+  },
+  "homepage": "https://github.com/chauvuusvn/zeroscan#readme",
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

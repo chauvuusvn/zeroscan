@@ -584,6 +584,18 @@ def main() -> int:
     p_adr.add_argument("--consequences", required=True, help="Consequences and trade-offs")
     p_adr.set_defaults(func=cmd_add_decision)
 
+    # mcp server
+    def cmd_mcp(args: argparse.Namespace) -> int:
+        try:
+            from core.mcp_server import run_stdio_server
+        except ImportError:
+            from mcp_server import run_stdio_server  # type: ignore
+        run_stdio_server()
+        return 0
+
+    p_mcp = subparsers.add_parser("mcp", parents=[common_parser], help="Start Zero-Scan Model Context Protocol (MCP) stdio server")
+    p_mcp.set_defaults(func=cmd_mcp)
+
     args = parser.parse_args()
 
     if not args.command:
