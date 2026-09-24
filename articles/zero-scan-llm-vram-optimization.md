@@ -38,7 +38,11 @@ Where:
 
 ---
 
-## 💻 2. Real-World Case Study: Generating a Full-Stack App on a Local 70B Model
+## 💻 2. Architectural Simulation & Hardware Impact Model (Local 70B Benchmark)
+
+> **Evidence & Methodology Transparency Note:**
+> * `[VERIFIED ON PRODUCTION FLEET]`: Context containment under `<= 5 KB` and zero-drift 2-way handovers are verified 24/7 on our multi-agent fleet running on constrained 3.7GB RAM infrastructure.
+> * `[HARDWARE IMPACT PROJECTION]`: The VRAM and TTFT figures below are calculated directly from standard Grouped-Query Attention (GQA) Transformer physics ($2 \times L \times H_{KV} \times D \times T_{seq} \times 2\text{ bytes}$) on Llama-3.3-70B architecture.
 
 Suppose a developer runs a quantized **70B parameter model** (e.g., `Llama-3.3-70B-Instruct Q4_K_M`, which consumes **~39 GB VRAM**) locally on a workstation (e.g., Mac Studio or 2x RTX 3090/4090) and asks it to generate a 100-file full-stack application from scratch.
 

@@ -38,7 +38,11 @@ Trong đó:
 
 ---
 
-## 💻 2. Tình Huống Thực Tế: Xây Dựng Ứng Dụng 100 File Với Mô Hình 70B Cục Bộ
+## 💻 2. Mô Hình Mô Phỏng Kiến Trúc & Tác Động Phần Cứng (Mô Hình 70B Cục Bộ)
+
+> **Ghi Chú Minh Bạch Về Bằng Chứng & Phương Pháp Luận:**
+> * `[ĐÃ XÁC MINH TRÊN MÁY CHỦ THỰC TẾ]`: Khả năng duy trì ngữ cảnh dưới `<= 5 KB` và bàn giao không lệch trạng thái đã được kiểm chứng vận hành 24/7 trên hạm đội đa tác tử của chúng tôi trên hạ tầng RAM 3.7GB.
+> * `[MÔ PHỎNG DỰ BÁO PHẦN CỨNG]`: Các số liệu VRAM và độ trễ TTFT dưới đây được tính toán trực tiếp từ công thức vật lý Grouped-Query Attention (GQA) chuẩn ($2 \times L \times H_{KV} \times D \times T_{seq} \times 2\text{ bytes}$) trên kiến trúc Llama-3.3-70B.
 
 Giả sử một lập trình viên tải mô hình **70 tỷ tham số** (ví dụ: `Llama-3.3-70B-Instruct Q4_K_M` chiếm **~39 GB VRAM**) về máy trạm cá nhân (Mac Studio hoặc PC 2 card RTX 3090/4090) và yêu cầu AI viết một phần mềm gồm 100 file từ đầu đến cuối.
 
