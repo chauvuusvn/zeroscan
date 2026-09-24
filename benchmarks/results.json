@@ -1,0 +1,79 @@
+{
+  "timestamp": "2026-09-24T14:02:23Z",
+  "zeroscan_boot_anchor_bytes": 1686,
+  "zeroscan_boot_anchor_tokens": 421,
+  "average_token_reduction_pct": 98.95,
+  "average_latency_reduction_pct": 98.02,
+  "tiers": [
+    {
+      "tier": "Micro",
+      "files": 15,
+      "loc": 3500,
+      "naive_scan_tokens": 15000,
+      "naive_latency_ms": 187.5,
+      "zeroscan_tokens": 421,
+      "zeroscan_latency_ms": 8.7,
+      "token_reduction_pct": 97.19,
+      "latency_reduction_pct": 95.36,
+      "cost_1k_turns_naive_usd": 45.0,
+      "cost_1k_turns_zeroscan_usd": 1.26,
+      "cost_savings_1k_turns_usd": 43.74
+    },
+    {
+      "tier": "Small",
+      "files": 60,
+      "loc": 18000,
+      "naive_scan_tokens": 21600,
+      "naive_latency_ms": 300.0,
+      "zeroscan_tokens": 421,
+      "zeroscan_latency_ms": 9.1,
+      "token_reduction_pct": 98.05,
+      "latency_reduction_pct": 96.97,
+      "cost_1k_turns_naive_usd": 64.8,
+      "cost_1k_turns_zeroscan_usd": 1.26,
+      "cost_savings_1k_turns_usd": 63.54
+    },
+    {
+      "tier": "Medium (Enterprise)",
+      "files": 350,
+      "loc": 95000,
+      "naive_scan_tokens": 114000,
+      "naive_latency_ms": 1025.0,
+      "zeroscan_tokens": 421,
+      "zeroscan_latency_ms": 12.0,
+      "token_reduction_pct": 99.63,
+      "latency_reduction_pct": 98.83,
+      "cost_1k_turns_naive_usd": 342.0,
+      "cost_1k_turns_zeroscan_usd": 1.26,
+      "cost_savings_1k_turns_usd": 340.74
+    },
+    {
+      "tier": "Large (Monorepo)",
+      "files": 1500,
+      "loc": 450000,
+      "naive_scan_tokens": 540000,
+      "naive_latency_ms": 3900.0,
+      "zeroscan_tokens": 421,
+      "zeroscan_latency_ms": 23.5,
+      "token_reduction_pct": 99.92,
+      "latency_reduction_pct": 99.4,
+      "cost_1k_turns_naive_usd": 1620.0,
+      "cost_1k_turns_zeroscan_usd": 1.26,
+      "cost_savings_1k_turns_usd": 1618.74
+    },
+    {
+      "tier": "Mega (Platform)",
+      "files": 6000,
+      "loc": 1800000,
+      "naive_scan_tokens": 2160000,
+      "naive_latency_ms": 15150.0,
+      "zeroscan_tokens": 421,
+      "zeroscan_latency_ms": 68.5,
+      "token_reduction_pct": 99.98,
+      "latency_reduction_pct": 99.55,
+      "cost_1k_turns_naive_usd": 6480.0,
+      "cost_1k_turns_zeroscan_usd": 1.26,
+      "cost_savings_1k_turns_usd": 6478.74
+    }
+  ]
+}

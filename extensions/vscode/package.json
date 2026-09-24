@@ -1,0 +1,96 @@
+{
+  "name": "zeroscan-vscode",
+  "displayName": "Zero-Scan Context Engine for AI Coding Agents",
+  "description": "Git-Aware Project Memory V2.0 Extension for VS Code and Cursor. Eliminates 90%+ context bloat and token waste.",
+  "version": "2.0.0",
+  "publisher": "chauvuusvn",
+  "engines": {
+    "vscode": "^1.80.0"
+  },
+  "categories": [
+    "AI",
+    "Programming Languages",
+    "Other"
+  ],
+  "keywords": [
+    "zeroscan",
+    "mcp",
+    "context-window",
+    "ai-agent",
+    "cursor",
+    "claude-code",
+    "token-optimization"
+  ],
+  "activationEvents": [
+    "workspaceContains:.agent/BOOT.md",
+    "onCommand:zeroscan.init",
+    "onCommand:zeroscan.validate",
+    "onCommand:zeroscan.status"
+  ],
+  "main": "./extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "zeroscan.init",
+        "title": "Zero-Scan: Initialize Project Memory (.agent/)",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.validate",
+        "title": "Zero-Scan: Validate Context Budget (<= 10 KB)",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.status",
+        "title": "Zero-Scan: Show Memory Status & Budget Breakdown",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.openBoot",
+        "title": "Zero-Scan: Open Level 0 Boot Anchor (BOOT.md)",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.openMap",
+        "title": "Zero-Scan: Open Architecture GPS Map (PROJECT_MAP.json)",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.openTask",
+        "title": "Zero-Scan: Open Active Next Task (NEXT_TASK.md)",
+        "category": "Zero-Scan"
+      },
+      {
+        "command": "zeroscan.openDecisions",
+        "title": "Zero-Scan: Open Architectural Decisions (DECISIONS.md)",
+        "category": "Zero-Scan"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "zeroscan-explorer",
+          "title": "Zero-Scan",
+          "icon": "resources/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "zeroscan-explorer": [
+        {
+          "id": "zeroscan.memoryView",
+          "name": "Project Memory V2.0"
+        }
+      ]
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/chauvuusvn/zeroscan.git"
+  },
+  "bugs": {
+    "url": "https://github.com/chauvuusvn/zeroscan/issues"
+  },
+  "homepage": "https://github.com/chauvuusvn/zeroscan#readme",
+  "license": "MIT"
+}
