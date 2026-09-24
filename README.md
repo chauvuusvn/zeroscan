@@ -172,6 +172,18 @@ Project Memory V2.0 strictly enforces context budgets:
 
 ---
 
+## ⚠️ Common Pitfalls & Anti-Patterns (and How to Avoid Them)
+
+| Anti-Pattern / Pitfall | Root Cause | Impact | Zero-Scan Solution & Recovery |
+|---|---|---|---|
+| **1. The Stale State Trap** | Agent implements features but forgets to update `BOOT.md` / `PROJECT_STATE.json` before session exit. | Next agent session restarts from stale state, causing duplicate work or broken invariants. | **Session Exit Gate**: Enforce `python3 .agent/memory.py checkpoint` in pre-commit hooks and agent termination protocols before ending turns. |
+| **2. Decisions Bloat Trap** | Accumulating dozens of trivial ADRs in `DECISIONS.md` until it exceeds 20 KB. | Blows past the 10 KB bootstrap budget, inflating KV-cache VRAM. | **Compaction Protocol**: Stabilized decisions are consolidated into core axioms in `PROJECT_STATE.json` / `PROJECT.md`, moving historical notes to `DECISIONS_ARCHIVE.md`. |
+| **3. Concurrent State Corruption** | Multiple parallel subagents writing to `PROJECT_STATE.json` simultaneously. | Partial or corrupt JSON writes (`JSONDecodeError`). | **Atomic Write Engine**: `memory.py` always writes to a temporary file (`.tmp.<pid>`) and performs an atomic POSIX `os.replace` rename. |
+| **4. Accidental Full-Scan Drift** | Agent invokes unrestricted `find .` or recursive grep across `node_modules` / `venv`. | Floods context window with 100k+ tokens, degrading model reasoning (Lost-in-the-Middle). | **Strict GPS Routing**: Agents must query `PROJECT_MAP.json` first to get exact file paths for the active domain only. |
+| **5. Phantom Commit Binding** | Agent records a completed task in ledger without committing code to git first. | State claims task is verified, but git HEAD points to uncommitted or non-existent commit. | **Git Verification Guard**: `memory.py validate` checks `git rev-parse HEAD` against recorded hashes and rejects uncommitted state. |
+
+---
+
 ## ❓ Frequently Asked Questions (FAQ)
 
 <details>

@@ -172,3 +172,23 @@ Mọi Agent khi nhận việc trong repository đều phải tuân thủ nghiêm
 8. **Append-only Task Ledger:** Không xóa sửa lịch sử trong `TASK_LEDGER.jsonl`.
 9. **Kế thừa Session:** Mọi session mới phải có khả năng tiếp tục trơn tru chỉ từ `.agent/`.
 10. **Báo cáo trung thực:** Báo cáo đúng dung lượng bootstrap và file test diff thực tế.
+
+---
+
+## ⚠️ 7. CÁC BẪY LỖI THỰC CHIẾN & QUY TRÌNH KHẮC PHỤC
+
+### Bẫy lỗi 1: Hoàn thành Task nhưng chưa Commit Git (Commit ảo)
+* **Hiện tượng:** Ghi task `DONE` vào ledger nhưng chưa tạo commit mã nguồn.
+* **Khắc phục:** Chạy `python3 .agent/memory.py validate`. Nếu phát hiện lệch commit, tiến hành commit code trước: `git add . && git commit -m "fix: hoàn thành task"`, sau đó mới ghi checkpoint.
+
+### Bẫy lỗi 2: Tràn bộ nhớ do File Quyết Định phình to (Decisions Bloat)
+* **Hiện tượng:** `DECISIONS.md` tích lũy quá nhiều quyết định nhỏ lẻ vượt 20 KB.
+* **Khắc phục:** Áp dụng **Quy trình Nén (Compaction)**:
+  1. Tổng kết các quyết định cốt lõi đã ổn định vào `PROJECT_STATE.json`.
+  2. Lưu trữ toàn bộ lịch sử chi tiết vào `DECISIONS_ARCHIVE.md`.
+  3. Giữ `DECISIONS.md` gọn gàng dưới 5 KB chỉ chứa các quyết định đang mở hoặc quan trọng nhất.
+
+### Bẫy lỗi 3: Xung đột ghi đè đồng thời giữa các Agent (Race Condition)
+* **Hiện tượng:** Nhiều Agent chạy song song cùng lúc ghi vào file trạng thái gây hỏng JSON.
+* **Khắc phục:** Luôn sử dụng lệnh `python3 .agent/memory.py checkpoint` để ghi file an toàn nguyên tử (Atomic Write via `.tmp.<pid>` + `os.replace`).
+

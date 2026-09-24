@@ -171,6 +171,18 @@ Project Memory V2.0 thực thi nghiêm ngặt hạn ngạch token:
 
 ---
 
+## ⚠️ Các Bẫy Lỗi Thường Gặp & Hướng Dẫn Khắc Phục (Pitfalls & Best Practices)
+
+| Bẫy Lỗi (Anti-Pattern) | Nguyên Nhân Gốc Rễ | Tác Hại Thực Tế | Giải Pháp Chuẩn Zero-Scan |
+|---|---|---|---|
+| **1. Bẫy Trạng Thái Cũ (Stale State Trap)** | Agent hoàn thành task nhưng quên chạy `checkpoint` cập nhật `BOOT.md` / `PROJECT_STATE.json` trước khi ngắt phiên. | Agent phiên sau vào bị lệch thông tin, làm lại từ đầu hoặc gây xung đột logic. | **Cổng Kết Thúc Phiên (Session Exit Gate)**: Bắt buộc chạy `python3 .agent/memory.py checkpoint` trong pre-commit hooks và quy tắc đóng phiên làm việc. |
+| **2. Bẫy Bùng Nổ Quyết Định (Decisions Bloat)** | Tích lũy hàng chục quyết định nhỏ nhặt vào `DECISIONS.md` khiến file vượt quá 20 KB. | Phá vỡ hạn mức 10 KB bootstrap, làm phình to bộ nhớ KV-cache VRAM. | **Quy Trình Nén (Compaction Protocol)**: Chuyển các quyết định đã ổn định thành nguyên tắc cốt lõi trong `PROJECT_STATE.json` / `PROJECT.md`, đưa lịch sử cũ vào `DECISIONS_ARCHIVE.md`. |
+| **3. Xung Đột Ghi Đè Đồng Thời (Race Condition)** | Nhiều Agent chạy song song cùng lúc ghi dữ liệu vào `PROJECT_STATE.json`. | Làm hỏng cấu trúc file JSON (`JSONDecodeError`). | **Cơ Chế Ghi Nguyên Tử (Atomic Write)**: `memory.py` luôn ghi ra file tạm (`.tmp.<pid>`) trước rồi dùng lệnh POSIX `os.replace` để thay thế nguyên tử. |
+| **4. Tái Quét Mù Quáng (Accidental Full-Scan)** | Agent vô tình chạy lệnh tìm kiếm không giới hạn (`find .` hoặc grep quét qua `node_modules` / `venv`). | Làm tràn 100k+ tokens vào Context Window, khiến mô hình bị ảo giác và đơ máy. | **Định Tuyến Bản Đồ GPS**: Agent bắt buộc tra cứu `PROJECT_MAP.json` trước để lấy chính xác đường dẫn file của domain đang làm việc. |
+| **5. Ràng Buộc Commit Ảo (Phantom Commit Binding)** | Agent ghi nhận hoàn thành task nhưng chưa thực hiện git commit mã nguồn. | Trạng thái báo hoàn thành nhưng git HEAD trỏ vào commit không tồn tại hoặc code chưa lưu. | **Cổng Xác Thực Git**: `memory.py validate` tự động so khớp `git rev-parse HEAD` với commit hash ghi nhận và từ chối nếu chưa commit. |
+
+---
+
 ## ❓ Những câu hỏi thường gặp (FAQ)
 
 <details>

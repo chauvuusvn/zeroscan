@@ -155,3 +155,23 @@ All autonomous AI agents follow a strict 5-step lifecycle:
 1. **The 10 KB Budget Ceiling:** The combined size of `BOOT.md`, `PROJECT_STATE.json`, and `NEXT_TASK.md` must never exceed 10 KB.
 2. **Deterministic Evidence:** Never update task status to `DONE` without attaching real execution log output and a verified Git commit hash.
 3. **ADR Immutability:** Any decision marked `[LOCKED]` in `DECISIONS.md` cannot be overridden without explicit user approval.
+
+---
+
+## ⚠️ 6. Common Pitfalls & Recovery Protocols
+
+### Pitfall 1: Uncommitted Task Completion (Phantom Commits)
+* **Symptom:** Task marked complete in `TASK_LEDGER.jsonl`, but no matching git commit exists.
+* **Recovery:** Run `python3 .agent/memory.py validate`. If desync is detected, commit working tree changes first: `git add . && git commit -m "fix: complete task"`, then re-checkpoint.
+
+### Pitfall 2: Context Window Overflow from Decision Bloat
+* **Symptom:** `DECISIONS.md` exceeds 20 KB over long development sprints.
+* **Recovery:** Apply the **Compaction Protocol**:
+  1. Extract core architectural invariants and record them in `PROJECT_STATE.json`.
+  2. Move historical ADRs into `DECISIONS_ARCHIVE.md`.
+  3. Keep only active `[LOCKED]` and in-progress decisions in `DECISIONS.md`.
+
+### Pitfall 3: Multi-Agent State Race Conditions
+* **Symptom:** Multiple autonomous agents write simultaneously to state files.
+* **Recovery:** Use `memory.py` atomic write mechanism (writes to `.tmp.<pid>` before POSIX rename). Never edit `PROJECT_STATE.json` with direct unbuffered file streams.
+
