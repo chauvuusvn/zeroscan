@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Memory V2.1.2 Self-Healing Engine (core/memory.py)
+Project Memory V2.1.3 Self-Healing Engine (core/memory.py)
 Standard runtime for managing Git-backed .agent/ project memory.
 Pure Python 3.9+ standard library implementation (zero external dependencies).
 """
@@ -26,7 +26,7 @@ except ImportError:
     HAS_FCNTL = False
 
 MAX_BOOTSTRAP_CONTEXT_BYTES = 10240  # 10 KB budget ceiling
-SPECIFICATION_VERSION = "2.1.2"
+SPECIFICATION_VERSION = "2.1.3"
 
 
 @contextlib.contextmanager
@@ -185,7 +185,7 @@ def generate_boot_markdown(state: Dict[str, Any]) -> str:
     commit_sha = state.get("verified_commit", "INITIAL_STATE")
 
     return f"""# LEVEL 0 BOOT ANCHOR: {p_name.upper()}
-> **Spec Version:** 2.1.2 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
+> **Spec Version:** 2.1.3 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
 
 - **Project:** {p_name}
 - **Mission:** {mission}
@@ -467,7 +467,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     git_info = get_git_status_summary(agent_dir.parent)
 
     print("=" * 60)
-    print(f"🏛️  ZERO-SCAN PROJECT MEMORY V2.1.2 — STATUS")
+    print(f"🏛️  ZERO-SCAN PROJECT MEMORY V2.1.3 — STATUS")
     print("=" * 60)
     print(f"Project Name     : {state.get('project_name', 'Unknown')}")
     print(f"Phase            : {state.get('current_phase') or state.get('phase', 'Unknown')}")
@@ -499,7 +499,7 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 def cmd_validate(args: argparse.Namespace) -> int:
     """Validate memory integrity against specification."""
     agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
-    print(f"🔍 Validating Project Memory V2.1.2 at: {agent_dir} ...")
+    print(f"🔍 Validating Project Memory V2.1.3 at: {agent_dir} ...")
     strict = getattr(args, "strict", False)
     is_valid, errors, warnings = validate_agent_memory(agent_dir, strict_git=strict)
 
@@ -618,7 +618,7 @@ def cmd_add_decision(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.1.2 CLI Engine")
+    parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.1.3 CLI Engine")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     p_status = subparsers.add_parser("status", help="Show project memory status and metrics")

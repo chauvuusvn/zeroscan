@@ -1,7 +1,7 @@
-# ZeroScan (`.agent/`) — Project Memory V2.1.2
+# ZeroScan (`.agent/`) — Project Memory V2.1.3
 
 [![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
-[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.2-blue.svg)](https://pypi.org/project/zeroscan/)
+[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.3-blue.svg)](https://pypi.org/project/zeroscan/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Context Budget](https://img.shields.io/badge/Context%20Budget-%3C=10%20KB-success.svg)](https://github.com/chauvuusvn/zeroscan)
@@ -23,7 +23,7 @@ zeroscan-bootstrap --name "du-an-cua-ban" --mission "Xây dựng hệ sinh thái
 
 ## 🌟 Tổng quan
 
-**Zero-Scan Project Memory V2.1.2** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
+**Zero-Scan Project Memory V2.1.3** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
 
 Các coding agent truyền thống thường lãng phí hàng chục ngàn token để quét toàn bộ codebase mỗi khi bắt đầu phiên làm việc. Project Memory thay thế việc quét bừa bãi bằng một **File neo khởi động Cấp 0** (`BOOT.md` < 1 KB) và một **Bản đồ kiến trúc GPS** (`PROJECT_MAP.json`), đảm bảo agent khởi động tức thì với tổng ngữ cảnh `<= 10 KB`.
 
@@ -69,7 +69,7 @@ Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực t�
 
 ---
 
-## 🛡️ Điểm Mới Trong Phiên Bản V2.1.2 (Enterprise Ready)
+## 🛡️ Điểm Mới Trong Phiên Bản V2.1.3 (Enterprise Ready)
 
 1. **⚡ Tự Động Đồng Bộ Cấp Nguyên Tử (Atomic State-to-Boot Auto-Sync):** Sửa `PROJECT_STATE.json` là `BOOT.md` tự cập nhật theo thời gian thực, triệt tiêu nguy cơ trôi ngữ cảnh.
 2. **🔄 Phục Hồi File JSON Hỏng (Resilient JSON Loader & `.bak` Fallback):** Tự động khôi phục từ bản backup `.bak` nếu file JSON bị đứt gãy giữa chừng (Zero-Crash Guarantee).

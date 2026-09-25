@@ -1,14 +1,14 @@
-# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1.2)
+# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1.3)
 
 > **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, Hermes).  
-> **Phiên bản:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
+> **Phiên bản:** `v2.1.3 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
 > **Phát hành PyPI:** `pip install zeroscan`
 
 ---
 
 ## 🎯 1. TỔNG QUAN & MỤC TIÊU CỐT LÕI
 
-Hệ thống **Zero-Scan Project Memory V2.1.2** (`.agent/`) giải quyết 4 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
+Hệ thống **Zero-Scan Project Memory V2.1.3** (`.agent/`) giải quyết 4 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
 
 1. **Tránh lãng phí Context & Token (Zero-Scan):** Agent mới vào session không cần đọc lại 50.000–200.000 dòng code của repo. Chỉ cần nạp **Bootstrap Context (~2.5 KB)** là nắm trọn trạng thái, kiến trúc và task cần làm.
 2. **Khóa kiến trúc (ADR Locking):** Ngăn chặn agent sau tự ý "sáng tạo" đập đi xây lại những quyết định kiến trúc cốt lõi đã chốt từ trước trong `DECISIONS.md`.
@@ -76,7 +76,7 @@ zeroscan-mcp
 
 Để tránh trôi ngữ cảnh khi trao đổi giữa các LLM, hệ thống quy định 2 chỉ số tiêu chuẩn:
 
-| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế Zero-Scan V2.1.2 |
+| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế Zero-Scan V2.1.3 |
 |---|---|---|---|
 | **`BOOTSTRAP_CONTEXT_BYTES`** | Tổng dung lượng `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
 | **`TOTAL_AGENT_SYSTEM_BYTES`** | Toàn bộ dung lượng thư mục `.agent/` (gồm code helper, protocol, ADRs) | Thông tin tham khảo | **~29.4 KB** |
@@ -130,4 +130,4 @@ zeroscan-mcp
 
 ### Bẫy lỗi 8: Hỏng file JSON do ngắt tiến trình đột ngột (Corrupted JSON Crash)
 * **Hiện tượng:** File `PROJECT_STATE.json` bị 0 byte hoặc lỗi cú pháp khi cúp điện/ngắt process.
-* **Khắc phục:** Engine V2.1.2 tự động phục hồi từ bản sao lưu `.bak` gần nhất.
+* **Khắc phục:** Engine V2.1.3 tự động phục hồi từ bản sao lưu `.bak` gần nhất.

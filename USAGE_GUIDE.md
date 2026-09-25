@@ -1,14 +1,14 @@
-# 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1.2
+# 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1.3
 
 > **Target Audience:** Software Engineers & Autonomous AI Coding Agents (Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, Hermes).  
-> **Standard:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
+> **Standard:** `v2.1.3 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
 > **PyPI Distribution:** `pip install zeroscan`
 
 ---
 
 ## 🎯 1. Overview & Core Mission
 
-The **Zero-Scan Project Memory V2.1.2** (`.agent/`) architecture resolves the four major bottlenecks in AI-driven software development:
+The **Zero-Scan Project Memory V2.1.3** (`.agent/`) architecture resolves the four major bottlenecks in AI-driven software development:
 
 1. **Zero Context Waste (Zero-Scan):** New agent sessions do not need to scan 50,000–200,000 LOC. Loading only the **Bootstrap Context (~2.5 KB)** restores 100% context, architecture invariants, and current objectives instantly.
 2. **ADR Locking:** Prevents subsequent agent sessions from silently reverting or rewriting architectural decisions locked in `DECISIONS.md`.
@@ -74,7 +74,7 @@ zeroscan-mcp
 
 ## 📊 4. Context Budget Metrics
 
-| Metric | Definition | Threshold | Actual Zero-Scan V2.1.2 |
+| Metric | Definition | Threshold | Actual Zero-Scan V2.1.3 |
 |---|---|---|---|
 | **`BOOTSTRAP_CONTEXT_BYTES`** | Total bytes of `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
 | **`TOTAL_AGENT_SYSTEM_BYTES`** | Full `.agent/` directory footprint (helpers, protocols, ADRs) | Informational | **~29.4 KB** |

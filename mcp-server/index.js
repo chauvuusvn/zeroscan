@@ -13,7 +13,7 @@ const readline = require('readline');
 const { execSync } = require('child_process');
 
 const SERVER_NAME = 'zeroscan-mcp';
-const SERVER_VERSION = '2.1.2';
+const SERVER_VERSION = '2.1.3';
 const PROTOCOL_VERSION = '2024-11-05';
 const MAX_BOOTSTRAP_CONTEXT_BYTES = 10 * 1024; // 10 KB budget ceiling
 
@@ -191,7 +191,7 @@ function handlePromptsGet(name, args = {}) {
                     role: 'user',
                     content: {
                         type: 'text',
-                        text: `You are an AI Coding Agent operating under Zero-Scan Project Memory V2.1.2.\n\n=== LEVEL 0 BOOT ANCHOR ===\n${bootContent}\n\n=== CURRENT NEXT TASK ===\n${taskContent}\n\nDo NOT scan the full repository. Proceed with your task directly using this grounded context.`
+                        text: `You are an AI Coding Agent operating under Zero-Scan Project Memory V2.1.3.\n\n=== LEVEL 0 BOOT ANCHOR ===\n${bootContent}\n\n=== CURRENT NEXT TASK ===\n${taskContent}\n\nDo NOT scan the full repository. Proceed with your task directly using this grounded context.`
                     }
                 }
             ]
