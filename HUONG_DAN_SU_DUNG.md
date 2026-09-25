@@ -1,23 +1,23 @@
-# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG PROJECT MEMORY V2.0
+# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1)
 
-> **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Hermes, Claude Code, OpenAI Codex, OpenCode).  
-> **Phiên bản:** `v2.0 (Frozen Standard)` — Zero External Dependencies (Pure Python 3.11+ Stdlib).
+> **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Hermes, Claude Code, Cursor, Windsurf, Codex, OpenCode).  
+> **Phiên bản:** `v2.1.0 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
+> **Phát hành PyPI:** `pip install zeroscan`
 
 ---
 
 ## 🎯 1. TỔNG QUAN & MỤC TIÊU CỐT LÕI
 
-Hệ thống **Project Memory V2.0** (`.agent/`) được thiết kế để giải quyết 3 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
+Hệ thống **Zero-Scan Project Memory V2.1** (`.agent/`) giải quyết 4 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
 
 1. **Tránh lãng phí Context & Token (Zero-Scan):** Agent mới vào session không cần đọc lại 50.000–100.000 dòng code của repo. Chỉ cần nạp **Bootstrap Context (~2.5 KB)** là nắm trọn trạng thái, kiến trúc và task cần làm.
-2. **Khóa kiến trúc (ADR Locking):** Ngăn chặn agent sau tự ý "sáng tạo" đập đi xây lại những quyết định kiến trúc cốt lõi đã chốt từ trước.
-3. **Chống ảo tưởng tiến độ (Evidence Gate):** Chỉ đánh dấu `DONE` khi có bằng chứng chạy test thật (`pytest`, `unittest`) và được gắn chặt với Git Commit Hash thật.
+2. **Khóa kiến trúc (ADR Locking):** Ngăn chặn agent sau tự ý "sáng tạo" đập đi xây lại những quyết định kiến trúc cốt lõi đã chốt từ trước trong `DECISIONS.md`.
+3. **Cổng bằng chứng (Evidence Gate):** Chỉ đánh dấu `DONE` khi có bằng chứng chạy test thật (`pytest`, `unittest`) và được gắn chặt với Git Commit Hash thật.
+4. **Cơ chế tự chữa lành (Self-Healing Engine):** Tự động đồng bộ `BOOT.md`, phục hồi khi file JSON bị lỗi, và tự nén lưu trữ khi sổ cái task phình to.
 
 ---
 
 ## 📁 2. CẤU TRÚC BỘ NHỚ `.agent/`
-
-Bên trong mỗi repository chuẩn sẽ có thư mục `.agent/` gồm 8 thành phần:
 
 ```text
 .agent/
@@ -28,142 +28,58 @@ Bên trong mỗi repository chuẩn sẽ có thư mục `.agent/` gồm 8 thành
 ├── NEXT_TASK.md         # Đặc tả chi tiết task đang active, domain liên quan & tiêu chí nghiệm thu
 ├── TASK_LEDGER.jsonl    # Sổ cái nhật ký bất biến (append-only ledger) lưu vết các task đã xong
 ├── MEMORY_PROTOCOL.md   # 10 điều luật bắt buộc agent phải tuân thủ
-└── memory.py            # CLI Engine hỗ trợ kiểm tra, tính metrics và tạo checkpoint
+├── memory.py            # CLI Engine hỗ trợ kiểm tra, tính metrics và tạo checkpoint
+└── archive/             # Lưu trữ tự động các task cũ khi ledger vượt quá 50 tasks
 ```
 
 ---
 
-## 🚀 3. HƯỚNG DẪN DÙNG CÔNG CỤ CLI
+## 🚀 3. HƯỚNG DẪN CÀI ĐẶT & SỬ DỤNG CLI TOÀN CẦU
 
-### A. Khởi tạo Project Memory cho một Repo mới (`bootstrap.py`)
-
-#### Cách 1: One-Liner trực tiếp (Không cần clone repo ZeroScan)
+### A. Cài đặt 1-chạm qua pip
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/main/bootstrap.py | python3 - \
-  --target /path/to/du-an-moi \
-  --name "TenDuAn" \
-  --mission "Mô tả ngắn gọn mục tiêu của dự án" \
-  --phase "1" \
-  --domains "core-engine,api-gateway,storage,test-suite" \
-  --git-init
+pip install zeroscan
 ```
 
-#### Cách 2: Chạy trực tiếp từ file cục bộ
-Tại thư mục `zeroscan`, chạy lệnh để scaffold toàn bộ `.agent/`:
-
+### B. Khởi tạo bộ nhớ cho dự án mới hoặc dự án có sẵn
 ```bash
-python3 bootstrap.py \
-  --target /path/to/du-an-moi \
-  --name "TenDuAn" \
-  --mission "Mô tả ngắn gọn mục tiêu của dự án" \
-  --phase "1" \
-  --domains "core-engine,api-gateway,storage,test-suite"
+zeroscan-bootstrap --name "my-awesome-project" --mission "Xây dựng hệ thống AI" --domains "core,auth,api,db"
 ```
 
-*Tùy chọn bổ sung:*
-* `--git-init`: Tự động khởi tạo git repo nếu chưa có.
-* `--force`: Ghi đè lại cấu trúc `.agent/` nếu đã tồn tại.
-
----
-
-### B. Các lệnh điều phối trong dự án (`.agent/memory.py`)
-
-Trong bất kỳ repository nào đã có `.agent/`, sử dụng các lệnh sau:
-
-#### 1. Kiểm tra tổng quan trạng thái dự án
+### C. Các lệnh vận hành cốt lõi
 ```bash
-python3 .agent/memory.py status
-```
-*In ra Dashboard gồm: Phase hiện tại, commit đã verify, active task, test status, và bảng phân bổ dung lượng context.*
+# 1. Kiểm tra trạng thái và độ tuân thủ quy chuẩn
+zeroscan status
+zeroscan validate
 
-#### 2. Xác thực tính toàn vẹn bộ nhớ & Đồng bộ Git
-```bash
-python3 .agent/memory.py validate
-```
-*Kiểm tra:*
-* 8 file bắt buộc có đầy đủ không.
-* `BOOTSTRAP_CONTEXT_BYTES` có vượt trần 10 KB không.
-* Git HEAD có khớp với `code_commit` hoặc `memory_commit` không. Nếu lệch (desync), tự động in danh sách file bị lệch.
+# 2. Đo lường ngân sách ngữ cảnh (Context Budget Metrics)
+zeroscan metrics
+zeroscan metrics --json
 
-#### 3. Lưu mốc tiến độ (Checkpoint) sau khi code xong
-Sau khi code và chạy test thành công:
-```bash
-python3 .agent/memory.py checkpoint \
-  --phase "1" \
-  --status "COMPLETED" \
-  --commit "$(git rev-parse HEAD)" \
-  --record-ledger \
-  --task-id "P1-T01" \
-  --task-summary "Mô tả ngắn gọn tính năng vừa hoàn thành"
-```
+# 3. Đồng bộ hóa BOOT.md và tạo checkpoint Git
+zeroscan sync
 
-#### 4. Thêm quyết định kiến trúc mới (ADR)
-```bash
-python3 .agent/memory.py add-decision \
-  --title "Use PostgreSQL for Timeseries Data" \
-  --decision "Sử dụng TimescaleDB trên Postgres thay vì InfluxDB" \
-  --reason "Tận dụng relational query có sẵn và giảm chi phí infra" \
-  --status "LOCKED"
+# 4. Khởi động máy chủ MCP Server cho Claude Desktop / Cursor / Windsurf
+zeroscan-mcp
 ```
 
 ---
 
-## 🔄 4. QUY TRÌNH 5 BƯỚC CHO AGENT KHI LÀM VIỆC (STANDARD WORKFLOW)
-
-Mọi Agent khi nhận việc trong repository đều phải tuân thủ nghiêm ngặt 5 bước:
-
-```
-  ┌────────────────────────────────────────────────────────┐
-  │ BƯỚC 1: BOOT SESSION                                   │
-  │ • Đọc duy nhất `.agent/BOOT.md` (< 1 KB)               │
-  │ • Nắm rõ Mission, Phase, Ràng buộc và Task đang active │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ BƯỚC 2: VALIDATE STATE                                 │
-  │ • Chạy: `python3 .agent/memory.py validate`            │
-  │ • Nếu [IN_SYNC] -> Tiếp tục                            │
-  │ • Nếu [DESYNC] -> Đọc git diff của các file lệch       │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ BƯỚC 3: DOMAIN LOOKUP & SELECTIVE READ                 │
-  │ • Đọc `.agent/NEXT_TASK.md` lấy Domain liên quan       │
-  │ • Tra `.agent/PROJECT_MAP.json` để lấy đúng 2-3 files  │
-  │ • KHÔNG scan toàn bộ repo bừa bãi                      │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ BƯỚC 4: EXECUTE & TEST                                 │
-  │ • Viết code / sửa lỗi theo yêu cầu                     │
-  │ • Chạy test suite thật lấy Evidence (100% PASS)        │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ BƯỚC 5: COMMIT & CHECKPOINT                            │
-  │ • `git add <files> && git commit -m "..."`             │
-  │ • Chạy `python3 .agent/memory.py checkpoint ...`       │
-  │ • Cập nhật `.agent/NEXT_TASK.md` cho task tiếp theo    │
-  └────────────────────────────────────────────────────────┘
-```
-
----
-
-## 📊 5. CHUẨN ĐO LƯỜNG CONTEXT BUDGET
+## 📊 4. CHUẨN ĐO LƯỜNG CONTEXT BUDGET
 
 Để tránh trôi ngữ cảnh khi trao đổi giữa các LLM, hệ thống quy định 2 chỉ số tiêu chuẩn:
 
-| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế AutoNovel & AI Council |
+| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế Zero-Scan V2.1 |
 |---|---|---|---|
-| **`BOOTSTRAP_CONTEXT_BYTES`** | Tổng dung lượng `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,490 bytes (24.3%)** |
-| **`TOTAL_AGENT_SYSTEM_BYTES`** | Toàn bộ dung lượng thư mục `.agent/` (gồm code helper, protocol, ADRs) | Thông tin tham khảo | **~30.6 KB** |
+| **`BOOTSTRAP_CONTEXT_BYTES`** | Tổng dung lượng `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
+| **`TOTAL_AGENT_SYSTEM_BYTES`** | Toàn bộ dung lượng thư mục `.agent/` (gồm code helper, protocol, ADRs) | Thông tin tham khảo | **~29.4 KB** |
 
 ---
 
-## 🔒 6. 10 NGUYÊN TẮC VÀNG QUẢN TRỊ BỘ NHỚ (MEMORY PROTOCOL)
+## 🔒 5. 10 NGUYÊN TẮC VÀNG QUẢN TRỊ BỘ NHỚ (MEMORY PROTOCOL)
 
 1. **Đọc `BOOT.md` trước tiên:** Không bao giờ bắt đầu session bằng cách scan toàn bộ repo.
-2. **Kiểm tra tính đồng bộ Git:** Luôn chạy `memory.py validate` trước khi code.
+2. **Kiểm tra tính đồng bộ Git:** Luôn chạy `zeroscan validate` trước khi code.
 3. **Tra cứu qua `PROJECT_MAP.json`:** Chỉ mở những file thuộc domain của task hiện tại.
 4. **Tôn trọng quyết định `[LOCKED]`:** Tuyệt đối không thay đổi các ADR đã khóa trong `DECISIONS.md`.
 5. **Cổng bằng chứng (Evidence Gate):** Không bao giờ đánh dấu `DONE` nếu chưa có test PASS thực tế.
@@ -175,20 +91,36 @@ Mọi Agent khi nhận việc trong repository đều phải tuân thủ nghiêm
 
 ---
 
-## ⚠️ 7. CÁC BẪY LỖI THỰC CHIẾN & QUY TRÌNH KHẮC PHỤC
+## ⚠️ 6. 8 BẪY LỖI THỰC CHIẾN & QUY TRÌNH KHẮC PHỤC
 
 ### Bẫy lỗi 1: Hoàn thành Task nhưng chưa Commit Git (Commit ảo)
 * **Hiện tượng:** Ghi task `DONE` vào ledger nhưng chưa tạo commit mã nguồn.
-* **Khắc phục:** Chạy `python3 .agent/memory.py validate`. Nếu phát hiện lệch commit, tiến hành commit code trước: `git add . && git commit -m "fix: hoàn thành task"`, sau đó mới ghi checkpoint.
+* **Khắc phục:** Chạy `zeroscan validate`. Nếu phát hiện lệch commit, tiến hành commit code trước: `git add . && git commit -m "fix: hoàn thành task"`, sau đó mới ghi checkpoint.
 
 ### Bẫy lỗi 2: Tràn bộ nhớ do File Quyết Định phình to (Decisions Bloat)
 * **Hiện tượng:** `DECISIONS.md` tích lũy quá nhiều quyết định nhỏ lẻ vượt 20 KB.
-* **Khắc phục:** Áp dụng **Quy trình Nén (Compaction)**:
-  1. Tổng kết các quyết định cốt lõi đã ổn định vào `PROJECT_STATE.json`.
-  2. Lưu trữ toàn bộ lịch sử chi tiết vào `DECISIONS_ARCHIVE.md`.
-  3. Giữ `DECISIONS.md` gọn gàng dưới 5 KB chỉ chứa các quyết định đang mở hoặc quan trọng nhất.
+* **Khắc phục:** Áp dụng **Quy trình Nén (Compaction)**: Tổng kết các quyết định cốt lõi vào `PROJECT_STATE.json`, lưu trữ toàn bộ lịch sử chi tiết vào `DECISIONS_ARCHIVE.md`.
 
 ### Bẫy lỗi 3: Xung đột ghi đè đồng thời giữa các Agent (Race Condition)
 * **Hiện tượng:** Nhiều Agent chạy song song cùng lúc ghi vào file trạng thái gây hỏng JSON.
-* **Khắc phục:** Luôn sử dụng lệnh `python3 .agent/memory.py checkpoint` để ghi file an toàn nguyên tử (Atomic Write via `.tmp.<pid>` + `os.replace`).
+* **Khắc phục:** Sử dụng cơ chế ghi nguyên tử (Atomic Write via `.tmp.<pid>` + `os.replace` + `fsync`).
 
+### Bẫy lỗi 4: Quét toàn bộ Codebase mù quáng (Full-Scan Drift)
+* **Hiện tượng:** Agent tự ý dùng lệnh `grep -r` hoặc `find .` quét qua `node_modules` hoặc `venv`.
+* **Khắc phục:** Luôn tra cứu `PROJECT_MAP.json` để lấy đường dẫn chính xác của file thuộc domain hiện tại.
+
+### Bẫy lỗi 5: Xung đột nhánh Git & Trôi ngữ cảnh (Git Branch Drift)
+* **Hiện tượng:** Chuyển sang nhánh mới nhưng `.agent/` vẫn chứa task của nhánh cũ.
+* **Khắc phục:** Chạy `zeroscan sync` để tự động lọc và đồng bộ trạng thái khớp với nhánh Git hiện tại.
+
+### Bẫy lỗi 6: Client MCP nạp tham lam làm loãng Prompt (MCP Context Bleed)
+* **Hiện tượng:** MCP Client nạp toàn bộ 50 dòng lịch sử vào prompt gây tốn token.
+* **Khắc phục:** Sử dụng chế độ `compact mode` của công cụ `zeroscan_read_state` ($\le 1\text{ KB}$, chỉ lấy 3 task active).
+
+### Bẫy lỗi 7: Treo tiến trình khi Git Rebase tự động (Git Rebase Deadlock)
+* **Hiện tượng:** Hook kiểm tra commit chặn tiến trình rebase tự động của CI/CD.
+* **Khắc phục:** Zero-Scan Validator tự động phát hiện môi trường rebase để cho qua (non-blocking bypass) an toàn.
+
+### Bẫy lỗi 8: Hỏng file JSON do ngắt tiến trình đột ngột (Corrupted JSON Crash)
+* **Hiện tượng:** File `PROJECT_STATE.json` bị 0 byte hoặc lỗi cú pháp khi cúp điện/ngắt process.
+* **Khắc phục:** Engine V2.1 tự động phục hồi từ bản sao lưu `.bak` gần nhất.

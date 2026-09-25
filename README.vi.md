@@ -1,19 +1,29 @@
-# ZeroScan (`.agent/`) — Project Memory V2.0
+# ZeroScan (`.agent/`) — Project Memory V2.1
 
+[![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
+[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.0-blue.svg)](https://pypi.org/project/zeroscan/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Context Budget](https://img.shields.io/badge/Context%20Budget-%3C=10%20KB-success.svg)](https://github.com/chauvuusvn/zeroscan)
 
 [ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Bài Viết Chuyên Sâu ](articles/zero-scan-llm-vram-optimization.vi.md)
 
 > **Cơ chế quản trị ngữ cảnh Zero-Scan gắn kết với Git dành cho AI Coding Agents**  
-> Tương thích hoàn toàn với Hermes Agent, Claude Code, OpenAI Codex, và OpenCode.
+> Tương thích hoàn toàn với Hermes Agent, Claude Code, Cursor, Windsurf, OpenAI Codex, và OpenCode.
+
+```bash
+# Cài đặt 1-chạm toàn cầu qua pip
+pip install zeroscan
+
+# Khởi tạo kiến trúc .agent/ cho bất kỳ repository nào
+zeroscan-bootstrap --name "du-an-cua-ban" --mission "Xây dựng hệ sinh thái AI"
+```
 
 ---
 
 ## 🌟 Tổng quan
 
-**Project Memory V2.0** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
+**Project Memory V2.1** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
 
 Các coding agent truyền thống thường lãng phí hàng chục ngàn token để quét toàn bộ codebase mỗi khi bắt đầu phiên làm việc. Project Memory thay thế việc quét bừa bãi bằng một **File neo khởi động Cấp 0** (`BOOT.md` < 1 KB) và một **Bản đồ kiến trúc GPS** (`PROJECT_MAP.json`), đảm bảo agent khởi động tức thì với tổng ngữ cảnh `<= 10 KB`.
 
@@ -25,256 +35,77 @@ Các coding agent truyền thống thường lãng phí hàng chục ngàn token
 Các agent thông thường đọc toàn bộ kho mã nguồn trong mỗi lượt hội thoại, dễ dàng đốt 30.000–100.000+ token trước khi viết dòng code đầu tiên. Với Project Memory, agent **chỉ đọc duy nhất `BOOT.md` (~1 KB / ~500 tokens)**, ngay lập tức nắm vững kiến trúc cốt lõi và nhiệm vụ cần làm mà không cần đọc các thư mục không liên quan.
 
 ### 2. Định vị GPS qua `PROJECT_MAP.json`
-Thay vì tìm kiếm regex tốn kém trên toàn bộ cây thư mục, agent tra cứu bản đồ domain để nạp đúng file mã nguồn và file test cần thiết ngay lúc chạy. Các module không liên quan sẽ không bao giờ bị nạp vào ngữ cảnh làm việc.
+Thay vì tìm kiếm regex tốn kém trên toàn bộ cây thư mục, agent tra cứu `PROJECT_MAP.json` để lấy đường dẫn chính xác của file mã nguồn và test case thuộc domain đang xử lý.
 
-### 3. Ủy thác nhiệm vụ đa Agent tinh gọn (Multi-Agent Delegation)
-Khi một agent điều phối (Orchestrator) chia nhỏ công việc cho các subagent hoặc worker, nó chỉ truyền `BOOT.md` và `NEXT_TASK.md`. Các worker agent hoạt động trong cửa sổ ngữ cảnh cô lập, sắc bén mà không phải trả phí token cho toàn bộ repository.
+### 3. Khóa cứng quyết định kiến trúc (ADR Locking)
+Mọi quyết định kiến trúc quan trọng được lưu trong `DECISIONS.md` ở trạng thái `[LOCKED]`. Agent không bao giờ tự ý đập đi xây lại các quyết định đã được Sếp phê duyệt.
 
-### 📊 Bảng so sánh mức độ tiêu thụ Token
-
-| Giai đoạn vòng đời | Cách tiếp cận truyền thống (Quét toàn bộ) | Project Memory V2.0 (`.agent/`) | Tỉ lệ tiết kiệm |
-|---|---|---|:---:|
-| **Khởi động phiên (Session Boot)** | Nạp toàn bộ repo (30k–100k+ tokens) | Đọc `BOOT.md` (< 1 KB / ~500 tokens) | **~95%** |
-| **Điều hướng module (Domain Navigation)** | Chạy grep đệ quy & quét cây thư mục | Tra cứu `PROJECT_MAP.json` (< 3 KB) | **~90%** |
-| **Khởi động Worker Subagent** | Đọc lại cả repo cho mỗi agent con | Nạp `NEXT_TASK.md` + file đích | **~92%** |
-| **Trôi ngữ cảnh (Memory Drift)** | Phình prompt & sinh ảo giác | Sổ cái bất biến (Ledger) & khóa ADR | **Triệt tiêu trôi nhớ** |
-
-> **📌 Ghi chú kỹ thuật:** Tỉ lệ tiết kiệm token đo lường trực tiếp trên chi phí khởi tạo ngữ cảnh (context initialization), chi phí quét đệ quy cây thư mục và tìm kiếm thăm dò. Lượng token dùng để viết mới hoặc chỉnh sửa các dòng code thực tế vẫn sẽ phụ thuộc vào độ dài của đoạn mã được tạo ra.
+### 4. Cổng bằng chứng bất biến (Immutable Evidence Gate)
+Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực tế và được gắn hash với Git Commit thật (`code_commit` và `memory_commit`).
 
 ---
 
-## 📁 Cấu trúc chuẩn `.agent/`
+## 🛡️ Điểm Mới Trong Phiên Bản V2.1 (Self-Healing Engine)
 
-Mỗi dự án tuân thủ chuẩn đều chứa một thư mục `.agent/` với cấu trúc sau:
+1. **⚡ Tự Động Đồng Bộ Cấp Nguyên Tử (Atomic State-to-Boot Auto-Sync):** Sửa `PROJECT_STATE.json` là `BOOT.md` tự cập nhật theo thời gian thực, triệt tiêu nguy cơ trôi ngữ cảnh.
+2. **🔄 Phục Hồi File JSON Hỏng (Resilient JSON Loader & `.bak` Fallback):** Tự động khôi phục từ bản backup `.bak` nếu file JSON bị đứt gãy giữa chừng (Zero-Crash Guarantee).
+3. **📦 Tự Động Lưu Trữ Sổ Ghi Tác Vụ (Ledger Auto-Pruning):** Tự động chuyển các tác vụ cũ sang `.agent/archive/` khi vượt quá 50 tasks, bảo vệ vĩnh viễn ngân sách $\le 10\text{ KB}$.
+4. **🔒 Kiểm Soát Biên Giới Thư Mục (Bound-Checked Agent Locator):** Trả về thông báo lỗi có cấu trúc thay vì rơi tự do leo lên `/`.
 
-```
+---
+
+## 📁 Cấu trúc bộ nhớ `.agent/`
+
+```text
 .agent/
-├── BOOT.md               # [Level 0] File neo khởi động siêu nhẹ (< 1 KB / ~30 dòng)
-├── PROJECT_STATE.json    # [Level 1] State machine gắn kết với git verified_commit & metrics
-├── PROJECT_MAP.json      # Bản đồ GPS: Ánh xạ domain chức năng tới files & tests
-├── DECISIONS.md          # Danh mục quyết định kiến trúc (ADRs) ở trạng thái [LOCKED]
-├── TASK_LEDGER.jsonl     # Sổ cái nhật ký bất biến lưu vết các task đã xong & bằng chứng
-├── NEXT_TASK.md          # Đặc tả task đang active, tiêu chí nghiệm thu & lệnh test
-├── MEMORY_PROTOCOL.md    # 10 điều luật vàng cho agent thực thi & xác minh bằng chứng
-└── memory.py             # Engine Python 3.11+ thuần túy không dependencies bên ngoài
+├── BOOT.md              # [BẮT BUỘC ĐỌC ĐẦU TIÊN] File neo khởi động session (< 1 KB)
+├── PROJECT_STATE.json   # State machine của repo (gắn với Git code_commit & memory_commit)
+├── PROJECT_MAP.json     # Bản đồ GPS codebase: Phân chia Domain -> File Paths -> Tests
+├── DECISIONS.md         # Danh mục Architectural Decision Records (ADRs) ở trạng thái [LOCKED]
+├── NEXT_TASK.md         # Đặc tả chi tiết task đang active, domain liên quan & tiêu chí nghiệm thu
+├── TASK_LEDGER.jsonl    # Sổ cái nhật ký bất biến (append-only ledger) lưu vết các task đã xong
+├── MEMORY_PROTOCOL.md   # 10 điều luật bắt buộc agent phải tuân thủ
+├── memory.py            # CLI Engine hỗ trợ kiểm tra, tính metrics và tạo checkpoint
+└── archive/             # Thư mục lưu trữ tự động các task cũ khi vượt quá 50 tasks
 ```
 
 ---
 
-## 🚀 Hướng dẫn nhanh: Khởi tạo dự án mới
+## ⚠️ 8 Cạm Bẫy Thực Chiến & Quy Chuẩn Phòng Vệ (Pitfalls & Anti-Patterns)
 
-### Cách 1: Chạy trực tiếp qua One-Liner (Không cần Clone)
+| # | Cạm Bẫy (Pitfall / Anti-Pattern) | Nguyên Nhân Gốc Rễ | Tác Hại Thực Tế | Giao Thức Phòng Vệ Zero-Scan |
+|---|---|---|---|---|
+| **1** | **The Stale State Trap** | Agent làm xong việc nhưng quên cập nhật `BOOT.md` / `PROJECT_STATE.json`. | Phiên sau khởi động lại từ trạng thái cũ, làm trùng việc hoặc hỏng logic. | **Session Exit Gate**: Cưỡng chế chạy checkpoint trước khi kết thúc phiên. |
+| **2** | **Decisions Bloat Trap** | Nhồi nhét hàng chục quyết định vụn vặt vào `DECISIONS.md` $> 20\text{ KB}$. | Vượt ngân sách $10\text{ KB}$, làm phình KV-cache và loãng ngữ cảnh. | **Compaction Protocol**: Nén các quyết định đã ổn định thành tiên đề, dọn phần cũ vào archive. |
+| **3** | **Concurrent Corruption** | Nhiều subagent cùng lúc ghi vào `PROJECT_STATE.json`. | Ghi đè file đứt gãy (`JSONDecodeError`). | **Atomic Write Engine**: Ghi file tạm `.tmp.<pid>` + `fsync` + đổi tên nguyên tử (`os.replace`). |
+| **4** | **Accidental Full-Scan Drift** | Agent gọi lệnh quét đệ quy vô tội vạ vào `node_modules` / `venv`. | Bơm $100\text{k}+$ tokens rác vào context, làm suy giảm khả năng suy luận. | **Strict GPS Routing**: Buộc Agent tra cứu `PROJECT_MAP.json` để chỉ đọc đúng file cần thiết. |
+| **5** | **Phantom Commit Binding** | Đánh dấu hoàn thành task trong ledger nhưng chưa commit code thật vào git. | State ghi là "đã xong" nhưng git HEAD trỏ vào commit ảo/cũ. | **Git Verification Guard**: Validator đối chiếu hash thực tế của `git rev-parse HEAD`. |
+| **6** | **Git Branch & Worktree Drift** | Đổi nhánh git nhưng `.agent/` vẫn lưu trạng thái của nhánh cũ. | Agent làm việc dựa trên mục tiêu của nhánh khác. | **Branch-Aware Ledger**: Gắn tag tên branch vào từng task, tự động lọc theo nhánh hiện hành. |
+| **7** | **Greedy MCP Context Bleed** | Client MCP nạp tham lam toàn bộ 50 task vào System Prompt. | Lãng phí token và làm loãng câu lệnh prompt của người dùng. | **Selective View Filters**: Mặc định `compact mode`, chỉ trả về $\le 1\text{ KB}$ gồm 3 active tasks. |
+| **8** | **Git Rebase Deadlock** | Kiểm tra commit quá cứng nhắc làm treo tiến trình `git rebase` tự động. | CI/CD hoặc lệnh squash/rebase bị fail khi ở trạng thái `detached HEAD`. | **Non-Blocking Rebase Bypass**: Validator phát hiện môi trường rebase để tự động cho qua an toàn. |
+
+---
+
+## 🚀 Hướng dẫn bắt đầu nhanh
+
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/main/bootstrap.py | python3 - -n "Quantum Engine" --domains "engine,storage,network,api" --git-init
-```
+# 1. Cài đặt thư viện
+pip install zeroscan
 
-### Cách 2: Sử dụng file `bootstrap.py` cục bộ
-Sử dụng `bootstrap.py` để tạo hệ thống bộ nhớ `.agent/` chuẩn cho bất kỳ repository nào:
+# 2. Khởi tạo bộ nhớ cho dự án
+zeroscan-bootstrap --name "my-project" --mission "Build Agent Fleet" --domains "core,api,auth,db"
 
-```bash
-# Sử dụng cơ bản trong thư mục hiện tại
-python3 bootstrap.py
+# 3. Kiểm toán tuân thủ ngân sách ngữ cảnh
+zeroscan validate
+zeroscan metrics
 
-# Khởi tạo tùy biến cho một dự án cụ thể
-python3 bootstrap.py \
-  --target /path/to/my-project \
-  --name "Quantum Engine" \
-  --mission "Hệ thống xử lý sự kiện phân tán hiệu năng cao" \
-  --phase "Phase 1 - Kiến trúc cốt lõi" \
-  --domains "engine,storage,network,api" \
-  --git-init
-```
-
-### Tham số CLI của `bootstrap.py`:
-| Tùy chọn | Viết tắt | Mặc định | Mô tả |
-|---|---|---|---|
-| `--target` | `-t` | `.` | Đường dẫn thư mục dự án đích |
-| `--name` | `-n` | Tên thư mục | Tên dự án |
-| `--mission` | `-m` | "Autonomous..." | Tuyên ngôn sứ mệnh của dự án |
-| `--phase` | `-p` | "Phase 1..." | Tên phase khởi đầu |
-| `--domains` | `-d` | "core" | Danh sách các domain phân tách bằng dấu phẩy |
-| `--force` | `-f` | `False` | Ghi đè thư mục `.agent/` nếu đã tồn tại |
-| `--git-init` | | `False` | Tự động chạy `git init` nếu thư mục chưa có Git |
-
----
-
-## 🛠️ Vận hành `.agent/memory.py` trong dự án
-
-Sau khi khởi tạo, agent tương tác trực tiếp với engine bộ nhớ:
-
-### 1. Xem trạng thái & hạn mức bộ nhớ
-```bash
-python3 .agent/memory.py status
-```
-Hiển thị sứ mệnh, phase hiện tại, task active, git HEAD vs commit đã xác thực, và chi tiết dung lượng context.
-
-### 2. Kiểm tra tính toàn vẹn của bộ nhớ
-```bash
-python3 .agent/memory.py validate
-```
-Kiểm tra JSON schemas, đối soát commit git, và xác nhận `BOOTSTRAP_CONTEXT_BYTES <= 10,240 bytes` (10 KB).
-
-### 3. Checkpoint trạng thái nguyên tử & Đồng bộ Task kế tiếp
-```bash
-python3 .agent/memory.py checkpoint \
-  --phase "Phase 2 - Phát triển tính năng" \
-  --status "IN_PROGRESS" \
-  --record-ledger \
-  --task-id "TASK-002" \
-  --task-summary "Hoàn thành đăng ký và băm mật khẩu" \
-  --evidence "pytest_exit_0_hash_abc123" \
-  --test-status "ALL_PASS (48/48)" \
-  --next-task "Xây dựng cơ chế xoay vòng JWT Refresh Token" \
-  --next-task-id "TASK-003" \
-  --next-task-desc "Tích hợp Redis lưu trữ whitelist và cơ chế thu hồi token"
-```
-- Cập nhật nguyên tử file `PROJECT_STATE.json`.
-- Đồng bộ tái tạo file `BOOT.md`.
-- Tự động tạo và đồng bộ tiêu chuẩn nghiệm thu trong `NEXT_TASK.md`.
-- Ghi thêm bằng chứng task vào sổ cái `TASK_LEDGER.jsonl`.
-- Tự động tính toán lại dung lượng context.
-
-### 4. Ghi nhận quyết định kiến trúc (ADR)
-```bash
-python3 .agent/memory.py add-decision \
-  --id "ADR-002" \
-  --title "Sử dụng SQLite chế độ WAL làm bộ nhớ đệm cục bộ" \
-  --status "LOCKED" \
-  --context "Yêu cầu đọc đồng thời cao mà không cần dịch vụ DB bên ngoài" \
-  --decision "Sử dụng SQLite nhúng với chế độ WAL và 64MB mmap" \
-  --consequences "Không phụ thuộc dịch vụ ngoài; chỉ chạy đơn node"
+# 4. Chạy MCP Server cho Cursor / Claude Desktop / Trae
+zeroscan-mcp
 ```
 
 ---
 
-## 🔌 Tích Hợp Model Context Protocol (MCP) Server
-
-Zero-Scan tích hợp sẵn máy chủ **Model Context Protocol (MCP)** chuẩn quốc tế, giúp kết nối 1-chạm với **Cursor**, **Claude Desktop**, **Windsurf**, **Trae**, và **Claude Code**.
-
-### Cấu hình trong Claude Desktop (`claude_desktop_config.json`) hoặc Cursor:
-```json
-{
-  "mcpServers": {
-    "zeroscan": {
-      "command": "npx",
-      "args": ["-y", "zeroscan-mcp"]
-    }
-  }
-}
-```
-*Hoặc khởi chạy trực tiếp bằng Python:*
-```json
-{
-  "mcpServers": {
-    "zeroscan": {
-      "command": "python3",
-      "args": ["-m", "core.mcp_server"]
-    }
-  }
-}
-```
-
-### 🛠️ Các MCP Tools cung cấp cho Agent:
-- `zeroscan_boot`: Nạp Level 0 Boot Anchor tức thì (< 1 KB / ~500 tokens), loại bỏ hoàn toàn quét cây thư mục.
-- `zeroscan_get_map`: Tra cứu bản đồ kiến trúc GPS đa tầng (`PROJECT_MAP.json`).
-- `zeroscan_get_state`: Đọc tiến độ milestone, git hash và trạng thái thực thi.
-- `zeroscan_get_next_task`: Lấy nhiệm vụ tức thời tiếp theo (`NEXT_TASK.md`).
-- `zeroscan_record_decision`: Ghi nhận quyết định kiến trúc ADR vào `DECISIONS.md`.
-- `zeroscan_validate`: Kiểm toán thực thi hạn mức ngữ cảnh `<= 10 KB`.
-
----
-
-## 📊 Hạn mức kích thước ngữ cảnh (Context Budget)
-
-Project Memory V2.0 thực thi nghiêm ngặt hạn ngạch token:
-
-- **Hạn mức Bootstrap Context (`BOOTSTRAP_CONTEXT_BYTES`)**:\n  $$\text{Dung lượng}(\text{BOOT.md}) + \text{Dung lượng}(\text{PROJECT_STATE.json}) + \text{Dung lượng}(\text{NEXT_TASK.md}) \le 10,240 \text{ bytes (10 KB)}$$
-- **Không duyệt cây thư mục**: Agent đọc `BOOT.md` và tra cứu `PROJECT_MAP.json` để mở thẳng các file liên quan thay vì quét toàn bộ cây thư mục.
-
----
-
-## 📜 10 Điều Luật Vàng
-
-1. **Khởi động từ Level 0**: Đọc `.agent/BOOT.md` đầu tiên. Tuyệt đối không quét đệ quy codebase.
-2. **Gắn kết Git Commit thật**: Mọi cập nhật trạng thái phải tham chiếu commit hash hợp lệ.
-3. **Định tuyến qua Bản đồ GPS**: Sử dụng `PROJECT_MAP.json` để chỉ tải các file domain liên quan.
-4. **Bảo vệ ADR đã khóa**: Không bao giờ vi phạm các quyết định có nhãn `[LOCKED]` trong `DECISIONS.md`.
-5. **Cập nhật nguyên tử**: Luôn sử dụng `memory.py checkpoint` cho mọi thao tác lưu tiến độ.
-6. **Sổ cái bất biến**: Không bao giờ chỉnh sửa hoặc cắt xén `TASK_LEDGER.jsonl`.
-7. **Tập trung đơn nhiệm**: `NEXT_TASK.md` xác định một mục tiêu duy nhất đang thực hiện.
-8. **Nghiệm thu bằng bằng chứng**: Chỉ đánh dấu hoàn thành khi có kết quả chạy test thật thành công.
-9. **Kiểm soát hạn mức ngữ cảnh**: Giữ tổng các file bootstrap dưới 10 KB.
-10. **Tự động kiểm tra**: Chạy `memory.py validate` trong pre-commit hook hoặc CI pipeline.
-
----
-
-## ⚠️ Các Bẫy Lỗi Thường Gặp & Hướng Dẫn Khắc Phục (Pitfalls & Best Practices)
-
-| Bẫy Lỗi (Anti-Pattern) | Nguyên Nhân Gốc Rễ | Tác Hại Thực Tế | Giải Pháp Chuẩn Zero-Scan |
-|---|---|---|---|
-| **1. Bẫy Trạng Thái Cũ (Stale State Trap)** | Agent hoàn thành task nhưng quên chạy `checkpoint` cập nhật `BOOT.md` / `PROJECT_STATE.json` trước khi ngắt phiên. | Agent phiên sau vào bị lệch thông tin, làm lại từ đầu hoặc gây xung đột logic. | **Cổng Kết Thúc Phiên (Session Exit Gate)**: Bắt buộc chạy `python3 .agent/memory.py checkpoint` trong pre-commit hooks và quy tắc đóng phiên làm việc. |
-| **2. Bẫy Bùng Nổ Quyết Định (Decisions Bloat)** | Tích lũy hàng chục quyết định nhỏ nhặt vào `DECISIONS.md` khiến file vượt quá 20 KB. | Phá vỡ hạn mức 10 KB bootstrap, làm phình to bộ nhớ KV-cache VRAM. | **Quy Trình Nén (Compaction Protocol)**: Chuyển các quyết định đã ổn định thành nguyên tắc cốt lõi trong `PROJECT_STATE.json` / `PROJECT.md`, đưa lịch sử cũ vào `DECISIONS_ARCHIVE.md`. |
-| **3. Xung Đột Ghi Đè Đồng Thời (Race Condition)** | Nhiều Agent chạy song song cùng lúc ghi dữ liệu vào `PROJECT_STATE.json`. | Làm hỏng cấu trúc file JSON (`JSONDecodeError`). | **Cơ Chế Ghi Nguyên Tử (Atomic Write)**: `memory.py` luôn ghi ra file tạm (`.tmp.<pid>`) trước rồi dùng lệnh POSIX `os.replace` để thay thế nguyên tử. |
-| **4. Tái Quét Mù Quáng (Accidental Full-Scan)** | Agent vô tình chạy lệnh tìm kiếm không giới hạn (`find .` hoặc grep quét qua `node_modules` / `venv`). | Làm tràn 100k+ tokens vào Context Window, khiến mô hình bị ảo giác và đơ máy. | **Định Tuyến Bản Đồ GPS**: Agent bắt buộc tra cứu `PROJECT_MAP.json` trước để lấy chính xác đường dẫn file của domain đang làm việc. |
-| **5. Ràng Buộc Commit Ảo (Phantom Commit Binding)** | Agent ghi nhận hoàn thành task nhưng chưa thực hiện git commit mã nguồn. | Trạng thái báo hoàn thành nhưng git HEAD trỏ vào commit không tồn tại hoặc code chưa lưu. | **Cổng Xác Thực Git**: `memory.py validate` tự động so khớp `git rev-parse HEAD` với commit hash ghi nhận và từ chối nếu chưa commit. |
-
----
-
-## ❓ Những câu hỏi thường gặp (FAQ)
-
-<details>
-<summary><b>1. Project Memory V2.0 tương thích với những AI Agent nào?</b></summary>
-
-Project Memory V2.0 được thiết kế dưới dạng chuẩn mở, không phụ thuộc vào bất kỳ mô hình cụ thể nào. Hệ thống hoạt động tương thích ngay lập tức với:
-- **Hermes Agent**
-- **Claude Code (Anthropic)**
-- **OpenAI Codex**
-- **OpenCode**
-- **Cursor / Aider / Các framework AI Agent tùy biến**
-</details>
-
-<details>
-<summary><b>2. Thư mục `.agent/` có yêu cầu cài thêm thư viện Python ngoài không?</b></summary>
-
-**Không.** Toàn bộ engine cốt lõi (`memory.py` và `bootstrap.py`) được viết 100% bằng thư viện chuẩn (Standard Library) của Python 3.11+ (`json`, `subprocess`, `hashlib`, `argparse`, `pathlib`). Không cần cài đặt bất kỳ gói `pip` bên ngoài nào để chạy kiểm tra trạng thái, xác thực hay lưu checkpoint.
-</details>
-
-<details>
-<summary><b>3. Làm thế nào để Project Memory V2.0 chống hiện tượng trôi ngữ cảnh (Context Drift)?</b></summary>
-
-Hiện tượng trôi ngữ cảnh xảy ra khi agent phụ thuộc vào bộ nhớ tạm thời của đoạn chat vốn dễ bị cắt xén hoặc pha loãng. Project Memory chuyển toàn bộ dữ liệu thực tế (ground truth) ra ngoài ổ đĩa:
-- Các quy tắc kiến trúc được khóa cứng trong `DECISIONS.md`.
-- Lịch sử tiến độ được ghi bất biến trong sổ cái `TASK_LEDGER.jsonl`.
-- Phiên làm việc chỉ đọc `< 2.5 KB` từ `BOOT.md`, loại bỏ hoàn toàn tình trạng ảo giác.
-</details>
-
-<details>
-<summary><b>4. Tôi có thể áp dụng Project Memory V2.0 cho một dự án đã có sẵn không?</b></summary>
-
-**Hoàn toàn được.** Bạn chỉ cần chạy:
-```bash
-python3 bootstrap.py --target /path/to/existing-repo --domains "auth,api,db,ui"
-```
-Sau đó định nghĩa lại ánh xạ module trong `.agent/PROJECT_MAP.json` và thiết lập phase hiện tại trong `.agent/PROJECT_STATE.json`.
-</details>
-
-<details>
-<summary><b>5. Làm thế nào để tự động kiểm soát tính toàn vẹn bộ nhớ trong CI/CD?</b></summary>
-
-Thêm lệnh `python3 .agent/memory.py validate` vào GitHub Actions hoặc pre-commit hook. Lệnh sẽ báo lỗi (exit code `1`) nếu:
-- Dung lượng bootstrap context vượt quá hạn mức 10 KB.
-- Các file JSON cấu hình bị sai schema.
-- Xuất hiện thay đổi chưa được commit hoặc không khớp với git commit hash đã xác thực.
-</details>
-
----
-
-## 👤 Tác giả & Quản trị
-
-**Justin** — [@chauvuusvn](https://github.com/chauvuusvn)  
-*Thiết kế và phát triển cho các hệ sinh thái AI Agent tự chủ cao và quy trình phát triển tinh gọn.*
-
----
-
-## 🧪 Bản quyền
-Apache-2.0 / MIT. Thiết kế chuyên biệt cho các quy trình AI Agent tự chủ cao.
+## 📜 Bản Quyền & Tác Giả
+- **Tác giả:** Chau Vu / CPF-FAMILY (`@chauvuusvn`)
+- **Giấy phép:** MIT License (Mã nguồn mở 100%)
+- **Trang chủ PyPI:** [https://pypi.org/project/zeroscan/](https://pypi.org/project/zeroscan/)

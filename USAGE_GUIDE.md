@@ -1,190 +1,124 @@
-# 📘 Project Memory V2.0 (`.agent/`) — Complete Usage Guide
+# 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1
 
-> **Audience:** AI Coding Agents (Hermes, Claude Code, OpenAI Codex, OpenCode) & Software Engineers.  
-> **Standard:** `v2.0 (Frozen Standard)` — Zero External Dependencies (Pure Python 3.11+ Stdlib).
-
----
-
-## 🎯 1. Core Mission & Objectives
-
-The **Project Memory V2.0** standard (`.agent/`) is engineered to solve the 3 largest bottlenecks in AI-driven software development:
-
-1. **Eliminate Context & Token Bloat (Zero-Scan):** New agent sessions do NOT need to crawl 50,000–100,000 lines of codebase. Ingesting the **Bootstrap Context (~2.5 KB)** is sufficient to grasp repository state, architecture, and active tasks.
-2. **Lock Architectural Decisions (ADR Locking):** Prevents downstream agents from spontaneously refactoring or violating established core architectural decisions.
-3. **Prevent Hallucinated Progress (Evidence Gate):** Tasks are marked `DONE` ONLY when backed by verifiable test execution evidence (`pytest`, `unittest`, `vitest`) linked directly to a verified Git commit hash.
+> **Target Audience:** Software Engineers & Autonomous AI Coding Agents (Hermes, Claude Code, Cursor, Windsurf, OpenAI Codex, OpenCode).  
+> **Standard:** `v2.1.0 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
+> **PyPI Distribution:** `pip install zeroscan`
 
 ---
 
-## 📁 2. Memory Structure (`.agent/`)
+## 🎯 1. Overview & Core Mission
 
-Every standardized repository contains an `.agent/` directory with 8 core components:
+The **Zero-Scan Project Memory V2.1** (`.agent/`) architecture resolves the four major bottlenecks in AI-driven software development:
+
+1. **Zero Context Waste (Zero-Scan):** New agent sessions do not need to scan 50,000–100,000 LOC. Loading only the **Bootstrap Context (~2.5 KB)** restores 100% context, architecture invariants, and current objectives instantly.
+2. **ADR Locking:** Prevents subsequent agent sessions from silently reverting or rewriting architectural decisions locked in `DECISIONS.md`.
+3. **Immutable Evidence Gate:** A task is marked `DONE` only when validated with reproducible test executions (`pytest`, `unittest`) and bound to a verifiable Git Commit SHA.
+4. **Self-Healing Engine:** Auto-synchronizes `BOOT.md`, recovers from corrupted state files via `.bak` fallbacks, and automatically archives completed tasks when the ledger grows.
+
+---
+
+## 📁 2. The `.agent/` Directory Architecture
 
 ```text
 .agent/
-├── BOOT.md              # [MANDATORY SESSION BOOT] Level 0 session anchor file (< 1 KB)
-├── PROJECT_STATE.json   # State machine (bound to verified Git code_commit & memory_commit)
-├── PROJECT_MAP.json     # Architectural GPS map: Domains -> File Paths -> Tests
-├── DECISIONS.md         # Immutable Architectural Decision Records (ADRs) in [LOCKED] status
-├── NEXT_TASK.md         # Active task specification, involved domains & acceptance criteria
-├── TASK_LEDGER.jsonl    # Immutable append-only audit ledger recording completed tasks
-├── MEMORY_PROTOCOL.md   # 10 mandatory protocol rules enforced for autonomous agents
-└── memory.py            # Zero-dependency CLI engine for validation, metrics, and checkpoints
+├── BOOT.md              # [MANDATORY FIRST READ] Level 0 session boot anchor (< 1 KB)
+├── PROJECT_STATE.json   # Repo state machine (bound to code_commit and memory_commit)
+├── PROJECT_MAP.json     # Codebase GPS map: Domain -> File Paths -> Test Suites
+├── DECISIONS.md         # Active Architectural Decision Records (ADRs) marked [LOCKED]
+├── NEXT_TASK.md         # Detailed specification of active task, domains & acceptance criteria
+├── TASK_LEDGER.jsonl    # Append-only immutable task ledger
+├── MEMORY_PROTOCOL.md   # 10 mandatory agent behavioral rules
+├── memory.py            # Core CLI engine for validation, metrics, and state synchronization
+└── archive/             # Automated archive directory for completed tasks (> 50 items)
 ```
 
 ---
 
-## 🚀 3. CLI Quickstart & Setup
+## 🚀 3. Installation & Global CLI Operations
 
-### A. Scaffolding a New Repository (`bootstrap.py`)
-
-#### Option 1: Direct One-Liner (No repo cloning required)
+### A. Install from PyPI
 ```bash
-curl -fsSL https://raw.githubusercontent.com/chauvuusvn/zeroscan/master/bootstrap.py | python3 - \
-  --target /path/to/my-project \
-  --name "MyProject" \
-  --mission "Core mission objective of the project" \
-  --phase "1" \
-  --domains "core-engine,api-gateway,storage,test-suite" \
-  --git-init
+pip install zeroscan
 ```
 
-#### Option 2: Run Locally
-From the `zeroscan` root directory:
+### B. Scaffold `.agent/` for any new or existing repository
 ```bash
-python3 bootstrap.py \
-  --target /path/to/my-project \
-  --name "MyProject" \
-  --mission "Core mission objective of the project" \
-  --phase "1" \
-  --domains "core-engine,api-gateway,storage,test-suite"
+zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI systems" --domains "core,auth,api,db"
 ```
 
-*Additional options:*
-* `--git-init`: Automatically initialize a git repository if absent.
-* `--force`: Overwrite existing `.agent/` files.
-
----
-
-### B. Daily Operations & CLI Commands (`.agent/memory.py`)
-
-Inside any repository equipped with `.agent/`:
-
-#### 1. View Project Status Dashboard
+### C. Core CLI Commands
 ```bash
-python3 .agent/memory.py status
-```
-*Outputs current phase, verified commit, active task, test status, and bootstrap context token budget.*
+# 1. Check status and schema compliance
+zeroscan status
+zeroscan validate
 
-#### 2. Validate Memory Integrity & Git Sync
-```bash
-python3 .agent/memory.py validate
-```
-*Validates:*
-* All 8 required memory files are present.
-* `BOOTSTRAP_CONTEXT_BYTES` stays strictly `<= 10 KB`.
-* Git HEAD matches verified commit state. Flags desync if untracked changes exist.
+# 2. Inspect context budget metrics
+zeroscan metrics
+zeroscan metrics --json
 
-#### 3. Save a Verified Checkpoint
-Once coding and test execution pass:
-```bash
-python3 .agent/memory.py checkpoint \
-  --task-id "TASK-001" \
-  --evidence "pytest: 18 passed in 0.42s" \
-  --next-task "TASK-002"
-```
+# 3. Synchronize BOOT.md and checkpoint git commit
+zeroscan sync
 
-#### 4. Lock an Architectural Decision (ADR)
-```bash
-python3 .agent/memory.py add-decision \
-  --id "ADR-002" \
-  --title "Adopt DuckDB for In-Process OLAP" \
-  --choice "DuckDB" \
-  --rationale "Ultra low-latency analytics without separate server infrastructure."
-```
-
-#### 5. Synchronize GPS Map (`PROJECT_MAP.json`)
-```bash
-python3 .agent/memory.py sync-map
-```
-*Scans codebase and keeps domain file mappings up-to-date.*
-
----
-
-## 🔄 4. Standard 5-Step Agent Workflow
-
-All autonomous AI agents follow a strict 5-step lifecycle:
-
-```text
-  ┌────────────────────────────────────────────────────────┐
-  │ STEP 1: BOOT SESSION                                   │
-  │ • Ingest ONLY `.agent/BOOT.md` (< 1 KB / ~500 tokens) │
-  │ • Grasp Mission, Phase, Constraints & Active Task      │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ STEP 2: VALIDATE STATE                                 │
-  │ • Run: `python3 .agent/memory.py validate`             │
-  │ • If [IN_SYNC] -> Proceed                              │
-  │ • If [DESYNC] -> Inspect git diff of desynced files    │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ STEP 3: DOMAIN LOOKUP & SELECTIVE READ                 │
-  │ • Read `.agent/NEXT_TASK.md` for target Domain         │
-  │ • Query `.agent/PROJECT_MAP.json` for 2–3 target files │
-  │ • DO NOT perform blind recursive scans                 │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ STEP 4: EXECUTE & TEST                                 │
-  │ • Implement code changes / bugfixes                    │
-  │ • Execute real test suite (must be 100% PASS)          │
-  └──────────────────────────┬─────────────────────────────┘
-                             ↓
-  ┌────────────────────────────────────────────────────────┐
-  │ STEP 5: COMMIT & CHECKPOINT                            │
-  │ • `git add <files> && git commit -m "..."`             │
-  │ • `python3 .agent/memory.py checkpoint ...`            │
-  └────────────────────────────────────────────────────────┘
+# 4. Start MCP Server for Claude Desktop / Cursor / Windsurf
+zeroscan-mcp
 ```
 
 ---
 
-## 🛡️ 5. Zero-Scan Invariant Rules
+## 📊 4. Context Budget Metrics
 
-1. **The 10 KB Budget Ceiling:** The combined size of `BOOT.md`, `PROJECT_STATE.json`, and `NEXT_TASK.md` must never exceed 10 KB.
-2. **Deterministic Evidence:** Never update task status to `DONE` without attaching real execution log output and a verified Git commit hash.
-3. **ADR Immutability:** Any decision marked `[LOCKED]` in `DECISIONS.md` cannot be overridden without explicit user approval.
+| Metric | Definition | Threshold | Actual Zero-Scan V2.1 |
+|---|---|---|---|
+| **`BOOTSTRAP_CONTEXT_BYTES`** | Total bytes of `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
+| **`TOTAL_AGENT_SYSTEM_BYTES`** | Full `.agent/` directory footprint (helpers, protocols, ADRs) | Informational | **~29.4 KB** |
 
 ---
 
-## ⚠️ 6. Common Pitfalls & Recovery Protocols
+## 🔒 5. The 10 Golden Rules (Memory Protocol)
 
-### Pitfall 1: Uncommitted Task Completion (Phantom Commits)
-* **Symptom:** Task marked complete in `TASK_LEDGER.jsonl`, but no matching git commit exists.
-* **Recovery:** Run `python3 .agent/memory.py validate`. If desync is detected, commit working tree changes first: `git add . && git commit -m "fix: complete task"`, then re-checkpoint.
+1. **Read `BOOT.md` First:** Never begin a session by recursively scanning the codebase.
+2. **Verify Git Sync:** Always execute `zeroscan validate` before writing code.
+3. **Route via `PROJECT_MAP.json`:** Open only the files belonging to the active task domain.
+4. **Honor `[LOCKED]` Decisions:** Never modify locked ADRs in `DECISIONS.md`.
+5. **Evidence Gate:** Never mark a task `DONE` without passing test execution logs.
+6. **No Fabricated Output:** Ground truth resides in source files, logs, and Git commits.
+7. **Separate Code and Memory Commits:** Commit code first, record SHA in memory checkpoint second.
+8. **Append-Only Task Ledger:** Never delete or alter previous records in `TASK_LEDGER.jsonl`.
+9. **Zero-Scan Resume:** Every new session must resume cleanly from `.agent/` alone.
+10. **Honest Reporting:** Accurately report token metrics and exact test diffs.
 
-### Pitfall 2: Context Window Overflow from Decision Bloat
-* **Symptom:** `DECISIONS.md` exceeds 20 KB over long development sprints.
-* **Recovery:** Apply the **Compaction Protocol**:
-  1. Extract core architectural invariants and record them in `PROJECT_STATE.json`.
-  2. Move historical ADRs into `DECISIONS_ARCHIVE.md`.
-  3. Keep only active `[LOCKED]` and in-progress decisions in `DECISIONS.md`.
+---
 
-### Pitfall 3: Multi-Agent State Race Conditions
-* **Symptom:** Multiple autonomous agents write simultaneously to state files.
-* **Recovery:** Use `memory.py` atomic write mechanism (writes to `.tmp.<pid>` before POSIX rename). Never edit `PROJECT_STATE.json` with direct unbuffered file streams.
+## ⚠️ 6. 8 Common Pitfalls & Recovery Protocols
 
-### Pitfall 4: Git Branch & Worktree Drift
-* **Symptom:** Switching branches leaves `.agent/` state reflecting a different feature branch.
-* **Recovery:** Zero-Scan V2.1 tags tasks with branch names. Use `python3 core/memory.py sync` after switching branches to align `BOOT.md` with the checked-out branch.
+### Pitfall 1: Phantom Commits (Uncommitted Task Completion)
+* **Symptom:** Task marked complete in ledger, but no matching Git commit exists.
+* **Recovery:** Run `zeroscan validate`. Commit working tree changes first: `git add . && git commit -m "fix: complete task"`, then re-sync state.
 
-### Pitfall 5: Greedy MCP Context Bleed
-* **Symptom:** MCP clients inject full 50-task ledger into prompts, causing token inflation.
-* **Recovery:** Use `zeroscan_read_state` with `compact` view mode, fetching only active horizon tasks (<= 1 KB payload).
+### Pitfall 2: Decisions Bloat
+* **Symptom:** `DECISIONS.md` exceeds 20 KB over long sprints.
+* **Recovery:** Apply Compaction Protocol: Consolidate stabilized invariants into `PROJECT_STATE.json`, archive historical ADRs to `DECISIONS_ARCHIVE.md`.
 
-### Pitfall 6: Git Rebase & Detached HEAD Lock
-* **Symptom:** Pre-commit hooks fail during interactive rebase due to detached HEAD.
-* **Recovery:** Zero-Scan validator automatically detects `.git/rebase-merge` or rebase environments and gracefully allows non-blocking passthrough.
+### Pitfall 3: Multi-Agent Race Conditions
+* **Symptom:** Parallel subagents write simultaneously to state files.
+* **Recovery:** Engine enforces atomic writes (`.tmp.<pid>` + `os.replace` + `fsync`).
 
+### Pitfall 4: Accidental Full-Scan Drift
+* **Symptom:** Agent runs unrestricted recursive grep across `node_modules` or `venv`.
+* **Recovery:** Use `PROJECT_MAP.json` GPS routing to target domain files directly.
 
+### Pitfall 5: Git Branch & Worktree Drift
+* **Symptom:** Switching branches leaves `.agent/` tracking a different branch.
+* **Recovery:** Run `zeroscan sync` to align `BOOT.md` with the active checked-out branch.
+
+### Pitfall 6: Greedy MCP Context Bleed
+* **Symptom:** MCP clients inject full 50-task ledger history into prompts.
+* **Recovery:** Use `zeroscan_read_state` in default `compact` mode (<= 1 KB payload, 3 active tasks).
+
+### Pitfall 7: Git Rebase & Detached HEAD Deadlock
+* **Symptom:** Pre-commit validation blocks automated CI rebase or squash merges.
+* **Recovery:** Validator detects `.git/rebase-merge` environments and permits transient non-blocking passthrough.
+
+### Pitfall 8: Corrupted JSON Crash
+* **Symptom:** `PROJECT_STATE.json` becomes 0 bytes or malformed due to abrupt termination.
+* **Recovery:** Resilient loader automatically falls back to `.bak` snapshot.
