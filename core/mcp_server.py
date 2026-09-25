@@ -12,6 +12,7 @@ import datetime
 import json
 import os
 import sys
+import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
@@ -19,6 +20,7 @@ from typing import Any, Dict, List, Optional
 try:
     from core.memory import (
         MAX_BOOTSTRAP_CONTEXT_BYTES,
+        add_decision_record,
         calculate_metrics,
         find_agent_dir,
         get_git_commit,
@@ -28,6 +30,7 @@ try:
 except ImportError:
     from memory import (  # type: ignore
         MAX_BOOTSTRAP_CONTEXT_BYTES,
+        add_decision_record,
         calculate_metrics,
         find_agent_dir,
         get_git_commit,
@@ -253,27 +256,17 @@ def handle_tools_call(name: str, arguments: Optional[Dict[str, Any]] = None) -> 
         return {"content": [{"type": "text", "text": content}]}
 
     elif name == "zeroscan_record_decision":
-        dec_file = agent_dir / "DECISIONS.md"
-        if not dec_file.is_file():
-            return {
-                "content": [{"type": "text", "text": f"Error: No .agent/DECISIONS.md found at {agent_dir}."}],
-                "isError": True,
-            }
         title = args["title"]
         decision = args["decision"]
-        author = args.get("author", "AI Agent")
-        date_str = datetime.date.today().isoformat()
-        git_hash = get_git_commit(project_path)[:7]
-
-        entry = f"\n\n### ADR: {title} ({date_str})\n- **Author:** {author}\n- **Git Commit:** `{git_hash}`\n- **Decision:**\n{decision}\n"
-        with open(dec_file, "a", encoding="utf-8") as f:
-            f.write(entry)
-
+        adr_id = args.get("id", f"ADR-{int(time.time())}")
+        context = args.get("context", "")
+        status = args.get("status", "LOCKED")
+        add_decision_record(agent_dir, adr_id, title, decision, context=context, status=status)
         return {
             "content": [
                 {
                     "type": "text",
-                    "text": f"Successfully appended ADR '{title}' to {dec_file}.",
+                    "text": f"Successfully recorded ADR [{adr_id}: {title}] in {agent_dir / 'DECISIONS.md'}.",
                 }
             ]
         }

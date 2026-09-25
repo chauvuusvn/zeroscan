@@ -1,4 +1,0 @@
-[console_scripts]
-zeroscan = core.memory:main
-zeroscan-bootstrap = bootstrap:main
-zeroscan-mcp = core.mcp_server:main
