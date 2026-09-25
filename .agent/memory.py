@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 MAX_BOOTSTRAP_CONTEXT_BYTES = 10240  # 10 KB budget ceiling
-SPECIFICATION_VERSION = "2.1.0"
+SPECIFICATION_VERSION = "2.1.1"
 
 
 def find_agent_dir(start_path: Optional[Path] = None, require_existing: bool = False) -> Path:
@@ -117,7 +117,7 @@ def generate_boot_markdown(state: Dict[str, Any]) -> str:
     commit_sha = state.get("verified_commit", "INITIAL_STATE")
 
     return f"""# LEVEL 0 BOOT ANCHOR: {p_name.upper()}
-> **Spec Version:** 2.1.0 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
+> **Spec Version:** 2.1.1 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
 
 - **Project:** {p_name}
 - **Mission:** {mission}
