@@ -1,8 +1,18 @@
-# ZeroScan (`.agent/`) — Project Memory V2.0
+# ZeroScan (`.agent/`) — Project Memory V2.1
 
+[![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
+[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.0-blue.svg)](https://pypi.org/project/zeroscan/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
-[![Python: 3.11+](https://img.shields.io/badge/Python-3.11%2B-blue.svg)](https://www.python.org/)
+[![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Context Budget](https://img.shields.io/badge/Context%20Budget-%3C=10%20KB-success.svg)](https://github.com/chauvuusvn/zeroscan)
+
+```bash
+# Instant Installation via pip
+pip install zeroscan
+
+# Instant Bootstrap in any repository
+zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI apps"
+```
 
 [ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Deep-Dive Article ](articles/zero-scan-llm-vram-optimization.md)
 

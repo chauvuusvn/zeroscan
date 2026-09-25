@@ -1,0 +1,64 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "zeroscan"
+version = "2.1.0"
+description = "The Zero-Scan, Git-Aware Context Engine for AI Coding Agents (Hermes, Claude Code, Codex, OpenCode)"
+readme = "README.md"
+requires-python = ">=3.9"
+license = { text = "MIT" }
+authors = [
+    { name = "Chau Vu / CPF-FAMILY", email = "chauvuusvn@users.noreply.github.com" }
+]
+keywords = [
+    "ai-agents",
+    "context-window",
+    "mcp",
+    "model-context-protocol",
+    "claude-code",
+    "cursor",
+    "windsurf",
+    "hermes-agent",
+    "token-optimization",
+    "zero-scan"
+]
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence"
+]
+dependencies = []
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0"
+]
+
+[project.scripts]
+zeroscan = "core.memory:main"
+zeroscan-mcp = "core.mcp_server:main"
+zeroscan-bootstrap = "bootstrap:main"
+
+[project.urls]
+Homepage = "https://github.com/chauvuusvn/zeroscan"
+Documentation = "https://github.com/chauvuusvn/zeroscan#readme"
+Repository = "https://github.com/chauvuusvn/zeroscan.git"
+Issues = "https://github.com/chauvuusvn/zeroscan/issues"
+
+[tool.setuptools]
+packages = ["core", "benchmarks"]
+py-modules = ["bootstrap"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
