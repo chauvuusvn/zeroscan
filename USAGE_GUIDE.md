@@ -175,3 +175,16 @@ All autonomous AI agents follow a strict 5-step lifecycle:
 * **Symptom:** Multiple autonomous agents write simultaneously to state files.
 * **Recovery:** Use `memory.py` atomic write mechanism (writes to `.tmp.<pid>` before POSIX rename). Never edit `PROJECT_STATE.json` with direct unbuffered file streams.
 
+### Pitfall 4: Git Branch & Worktree Drift
+* **Symptom:** Switching branches leaves `.agent/` state reflecting a different feature branch.
+* **Recovery:** Zero-Scan V2.1 tags tasks with branch names. Use `python3 core/memory.py sync` after switching branches to align `BOOT.md` with the checked-out branch.
+
+### Pitfall 5: Greedy MCP Context Bleed
+* **Symptom:** MCP clients inject full 50-task ledger into prompts, causing token inflation.
+* **Recovery:** Use `zeroscan_read_state` with `compact` view mode, fetching only active horizon tasks (<= 1 KB payload).
+
+### Pitfall 6: Git Rebase & Detached HEAD Lock
+* **Symptom:** Pre-commit hooks fail during interactive rebase due to detached HEAD.
+* **Recovery:** Zero-Scan validator automatically detects `.git/rebase-merge` or rebase environments and gracefully allows non-blocking passthrough.
+
+
