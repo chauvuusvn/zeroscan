@@ -6,6 +6,7 @@ Pure Python 3.9+ standard library implementation (zero external dependencies).
 """
 
 import argparse
+import contextlib
 import datetime
 import hashlib
 import json
@@ -17,8 +18,51 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+try:
+    import fcntl
+    HAS_FCNTL = True
+except ImportError:
+    HAS_FCNTL = False
+
 MAX_BOOTSTRAP_CONTEXT_BYTES = 10240  # 10 KB budget ceiling
 SPECIFICATION_VERSION = "2.1.2"
+
+
+@contextlib.contextmanager
+def file_lock(lock_path: Path, timeout: float = 5.0):
+    """Cross-platform advisory file lock to prevent multi-agent concurrent write collisions."""
+    lock_file = lock_path.with_suffix(lock_path.suffix + ".lock")
+    start_time = time.time()
+    fd = None
+    try:
+        lock_file.parent.mkdir(parents=True, exist_ok=True)
+        fd = os.open(str(lock_file), os.O_CREAT | os.O_RDWR)
+        if HAS_FCNTL:
+            while True:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                    break
+                except (BlockingIOError, IOError):
+                    if time.time() - start_time > timeout:
+                        break
+                    time.sleep(0.05)
+        yield
+    finally:
+        if fd is not None:
+            if HAS_FCNTL:
+                try:
+                    fcntl.flock(fd, fcntl.LOCK_UN)
+                except Exception:
+                    pass
+            try:
+                os.close(fd)
+            except Exception:
+                pass
+        try:
+            if lock_file.is_file():
+                lock_file.unlink(missing_ok=True)
+        except Exception:
+            pass
 
 
 def find_agent_dir(start_path: Optional[Path] = None, require_existing: bool = False) -> Path:
@@ -64,28 +108,29 @@ def load_json(path: Path, default: Optional[Dict[str, Any]] = None) -> Dict[str,
 
 
 def atomic_write_json(path: Path, data: Dict[str, Any], auto_sync_boot: bool = True) -> None:
-    """Atomic write with fsync and automatic BOOT.md synchronization."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    temp_path = path.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
+    """Atomic write with fsync, file locking, and automatic BOOT.md synchronization."""
+    with file_lock(path):
+        path.parent.mkdir(parents=True, exist_ok=True)
+        temp_path = path.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
 
-    # Only create .bak backup if existing file has valid non-empty content
-    if path.is_file() and path.stat().st_size > 0:
-        bak_path = path.with_suffix(path.suffix + ".bak")
-        try:
-            shutil.copy2(path, bak_path)
-        except Exception:
-            pass
+        # Only create .bak backup if existing file has valid non-empty content
+        if path.is_file() and path.stat().st_size > 0:
+            bak_path = path.with_suffix(path.suffix + ".bak")
+            try:
+                shutil.copy2(path, bak_path)
+            except Exception:
+                pass
 
-    with open(temp_path, "w", encoding="utf-8") as f:
-        json.dump(data, f, indent=2)
-        f.write("\n")
-        f.flush()
-        os.fsync(f.fileno())
+        with open(temp_path, "w", encoding="utf-8") as f:
+            json.dump(data, f, indent=2)
+            f.write("\n")
+            f.flush()
+            os.fsync(f.fileno())
 
-    temp_path.replace(path)
+        temp_path.replace(path)
 
-    if auto_sync_boot and path.name == "PROJECT_STATE.json":
-        sync_boot_anchor(path.parent)
+        if auto_sync_boot and path.name == "PROJECT_STATE.json":
+            sync_boot_anchor(path.parent)
 
 
 def sync_boot_anchor(agent_dir: Path) -> None:
