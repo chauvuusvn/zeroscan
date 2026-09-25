@@ -1,4 +1,3 @@
-yaml
 name: Zero-Scan CI Suite
 
 on:
