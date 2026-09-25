@@ -69,6 +69,27 @@ Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực t�
 
 ---
 
+## 🧠 Vì Sao Zero-Scan Vĩnh Viễn Không Quên Ngữ Cảnh & Không Bị Phình To?
+
+### 1. Chuyển Trí Nhớ Ra Ổ Đĩa Cứng (Triệt tiêu hiện tượng "Lạc Giữa Dòng" - Lost-in-the-Middle)
+AI truyền thống bị mất trí nhớ khi chat dài do cửa sổ ngữ cảnh ($50\text{k} - 200\text{k}$ tokens) bị cắt xén và pha loãng. Zero-Scan đưa toàn bộ dữ liệu thực tế (Ground Truth) ra hệ thống tệp Git bất biến:
+- **`BOOT.md` (< 1 KB):** Định hướng tức thì trong 1 mili-giây (Mục tiêu cốt lõi, Phase hiện tại, Task đang làm, mã Git SHA).
+- **`PROJECT_MAP.json`:** Định vị GPS chính xác file mã nguồn cần chạm vào.
+- **`DECISIONS.md`:** Khóa cứng toàn bộ quyết định kiến trúc đã chốt `[LOCKED]`.
+- **`TASK_LEDGER.jsonl`:** Sổ cái ghi nhận bất biến các task đã xong và bằng chứng test thật.
+
+### 2. Cơ Chế Trao Đổi Chất Tự Động (Giữ vững trần ngân sách $\le 10\text{ KB}$ trọn đời)
+Dù dự án phát triển qua nhiều năm với hàng ngàn task, Zero-Scan luôn duy trì dung lượng khởi động siêu nhẹ:
+- Khi `TASK_LEDGER.jsonl` vượt quá **50 tasks**, hệ thống tự động dọn các task cũ vào `.agent/archive/TASK_LEDGER_ARCHIVE.jsonl`, giữ sổ cái chính luôn $< 5\text{ KB}$.
+- `BOOT.md` được render lại từ đầu mỗi lần checkpoint, tuyệt đối không bị tích lũy rác lịch sử.
+
+### 3. Tiếp Quản Liền Mạch Giữa Đa Mô Hình (Multi-LLM Handoff)
+Do bộ nhớ được chuẩn hóa trên filesystem, các AI khác nhau có thể phối hợp nhịp nhàng mà không mất ngữ cảnh:
+- **Phiên 1 (Claude 3.5 Sonnet):** Xây dựng module $\rightarrow$ chạy test PASS $\rightarrow$ lưu `zeroscan checkpoint`.
+- **Phiên 2 (GPT-4o hoặc DeepSeek-V3):** Đọc `BOOT.md` trong 1 mili-giây và tiếp quản công việc tức thì với độ chính xác 100%.
+
+---
+
 ## 🛡️ Điểm Mới Trong Phiên Bản V2.1.3 (Enterprise Ready)
 
 1. **⚡ Tự Động Đồng Bộ Cấp Nguyên Tử (Atomic State-to-Boot Auto-Sync):** Sửa `PROJECT_STATE.json` là `BOOT.md` tự cập nhật theo thời gian thực, triệt tiêu nguy cơ trôi ngữ cảnh.

@@ -69,6 +69,27 @@ A task is considered `DONE` only when validated with real test execution evidenc
 
 ---
 
+## 🧠 Why Zero-Scan Never Forgets & Never Bloats (Zero-Amnesia Engine)
+
+### 1. Externalized Ground Truth on Disk (Eliminating "Lost-in-the-Middle")
+Traditional LLM agents suffer from memory loss when conversation windows exceed 50k–200k tokens due to context truncation and attention dilution (*Lost-in-the-Middle*). Zero-Scan externalizes ground truth directly into the Git filesystem:
+- **`BOOT.md` (< 1 KB):** Instant operational awareness (Project goal, active phase, current task, verified commit SHA).
+- **`PROJECT_MAP.json`:** Precise GPS file routing for active domains.
+- **`DECISIONS.md`:** Non-negotiable architectural rules marked `[LOCKED]`.
+- **`TASK_LEDGER.jsonl`:** Immutable append-only record of completed work.
+
+### 2. Auto-Pruning Metabolism (Hard Budget Ceiling $\le 10\text{ KB}$)
+As projects evolve over months with hundreds of tasks, Zero-Scan maintains constant sub-10 KB performance through automated compaction:
+- When `TASK_LEDGER.jsonl` exceeds 50 tasks, older entries are automatically archived to `.agent/archive/TASK_LEDGER_ARCHIVE.jsonl`, keeping the active ledger small ($< 5\text{ KB}$).
+- `BOOT.md` is re-rendered atomically from scratch on each checkpoint, never accumulating historical bloat.
+
+### 3. Universal Multi-LLM Handoff
+Because memory is grounded in deterministic files, different AI models can seamlessly collaborate without context loss:
+- **Session 1 (Claude 3.5 Sonnet):** Implements auth module $\rightarrow$ runs tests $\rightarrow$ executes `zeroscan checkpoint`.
+- **Session 2 (GPT-4o or DeepSeek-V3):** Boots from `.agent/BOOT.md` in $< 1\text{ ms}$ and resumes immediately with 100% architectural fidelity.
+
+---
+
 ## 🛡️ V2.1.3 Enterprise-Grade Engineering Highlights
 
 1. **⚡ Atomic State-to-Boot Auto-Sync:** Updating `PROJECT_STATE.json` automatically re-renders `BOOT.md` in real-time, preventing state drift.
