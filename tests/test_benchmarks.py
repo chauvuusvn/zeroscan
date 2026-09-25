@@ -3,6 +3,10 @@
 Unit tests for Zero-Scan Benchmark Suite (benchmarks/evaluator.py).
 """
 
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
 import unittest
 from benchmarks.evaluator import generate_markdown_report, run_benchmark_evaluation
 
