@@ -1,7 +1,7 @@
 # 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1)
 
 > **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Hermes, Claude Code, Cursor, Windsurf, Codex, OpenCode).  
-> **Phiên bản:** `v2.1.1 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
+> **Phiên bản:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
 > **Phát hành PyPI:** `pip install zeroscan`
 
 ---

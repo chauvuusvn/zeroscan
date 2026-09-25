@@ -1,7 +1,7 @@
 # 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1
 
 > **Target Audience:** Software Engineers & Autonomous AI Coding Agents (Hermes, Claude Code, Cursor, Windsurf, OpenAI Codex, OpenCode).  
-> **Standard:** `v2.1.1 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
+> **Standard:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
 > **PyPI Distribution:** `pip install zeroscan`
 
 ---

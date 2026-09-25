@@ -52,6 +52,26 @@ class TestBootstrapGenerator(unittest.TestCase):
         metrics = memory.calculate_metrics(agent_dir)
         self.assertLessEqual(metrics["bootstrap_context_bytes"], 10240)
 
+    def test_bootstrap_cli_main(self):
+        """Verify bootstrap.main() CLI entrypoint runs end-to-end without KeyError."""
+        cli_target = self.target_dir / "cli_test_repo"
+        cli_target.mkdir(parents=True, exist_ok=True)
+
+        orig_argv = sys.argv
+        try:
+            sys.argv = [
+                "zeroscan-bootstrap",
+                "--target", str(cli_target),
+                "--name", "cli_test_project",
+                "--mission", "Testing CLI bootstrap execution",
+                "--git-init",
+            ]
+            ret = bootstrap.main()
+            self.assertEqual(ret, 0)
+            self.assertTrue((cli_target / ".agent" / "BOOT.md").is_file())
+        finally:
+            sys.argv = orig_argv
+
 
 if __name__ == "__main__":
     unittest.main()

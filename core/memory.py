@@ -18,7 +18,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 MAX_BOOTSTRAP_CONTEXT_BYTES = 10240  # 10 KB budget ceiling
-SPECIFICATION_VERSION = "2.1.1"
+SPECIFICATION_VERSION = "2.1.2"
 
 
 def find_agent_dir(start_path: Optional[Path] = None, require_existing: bool = False) -> Path:
@@ -68,7 +68,8 @@ def atomic_write_json(path: Path, data: Dict[str, Any], auto_sync_boot: bool = T
     path.parent.mkdir(parents=True, exist_ok=True)
     temp_path = path.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
 
-    if path.is_file():
+    # Only create .bak backup if existing file has valid non-empty content
+    if path.is_file() and path.stat().st_size > 0:
         bak_path = path.with_suffix(path.suffix + ".bak")
         try:
             shutil.copy2(path, bak_path)
@@ -117,7 +118,7 @@ def generate_boot_markdown(state: Dict[str, Any]) -> str:
     commit_sha = state.get("verified_commit", "INITIAL_STATE")
 
     return f"""# LEVEL 0 BOOT ANCHOR: {p_name.upper()}
-> **Spec Version:** 2.1.1 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
+> **Spec Version:** 2.1.2 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
 
 - **Project:** {p_name}
 - **Mission:** {mission}
@@ -192,6 +193,7 @@ def calculate_metrics(agent_dir: Path) -> Dict[str, Any]:
     return {
         "bootstrap_context_bytes": boot_bytes,
         "max_allowed_bytes": MAX_BOOTSTRAP_CONTEXT_BYTES,
+        "budget_limit_bytes": MAX_BOOTSTRAP_CONTEXT_BYTES,
         "budget_used_percent": pct,
         "is_within_budget": boot_bytes <= MAX_BOOTSTRAP_CONTEXT_BYTES,
         "total_agent_system_bytes": total_agent_bytes,
@@ -227,7 +229,12 @@ def record_task_ledger(
     prune_and_archive_ledger(agent_dir, max_active=max_active_tasks)
 
 
-def prune_and_archive_ledger(agent_dir: Path, max_active: int = 50, max_tasks: Optional[int] = None) -> int:
+def prune_and_archive_ledger(
+    agent_dir: Path,
+    max_active: int = 50,
+    max_tasks: Optional[int] = None,
+    keep_recent: int = 20,
+) -> int:
     """Archive older completed tasks into .agent/archive/TASK_LEDGER_ARCHIVE.jsonl."""
     limit = max_tasks if max_tasks is not None else max_active
     ledger_file = agent_dir / "TASK_LEDGER.jsonl"
@@ -244,7 +251,7 @@ def prune_and_archive_ledger(agent_dir: Path, max_active: int = 50, max_tasks: O
     archive_dir.mkdir(parents=True, exist_ok=True)
     archive_file = archive_dir / "TASK_LEDGER_ARCHIVE.jsonl"
 
-    split_index = len(lines) - 20
+    split_index = max(0, len(lines) - keep_recent)
     to_archive = lines[:split_index]
     to_keep = lines[split_index:]
 

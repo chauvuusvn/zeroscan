@@ -339,8 +339,9 @@ def main() -> int:
         spec.loader.exec_module(mod)
         is_valid, errors, warnings = mod.validate_agent_memory(agent_dir)
         metrics = mod.calculate_metrics(agent_dir)
+        limit_bytes = metrics.get('max_allowed_bytes') or metrics.get('budget_limit_bytes', 10240)
         print("\n📊 Initial Context Budget Metrics:")
-        print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / {metrics['budget_limit_bytes']} bytes ({metrics['budget_used_percent']}%)")
+        print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / {limit_bytes} bytes ({metrics['budget_used_percent']}%)")
         print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
 
         if is_valid:
@@ -350,9 +351,10 @@ def main() -> int:
 
     print("\n💡 Quick Start Guide for Agents:")
     print("   1. Boot session   : Read `.agent/BOOT.md` (< 1 KB)")
-    print("   2. Check status   : `python3 .agent/memory.py status`")
-    print("   3. Validate state : `python3 .agent/memory.py validate`")
-    print("   4. Save progress  : `python3 .agent/memory.py checkpoint --phase \"...\" --status IN_PROGRESS`")
+    print("   2. Check status   : `zeroscan status` or `python3 .agent/memory.py status`")
+    print("   3. Validate state : `zeroscan validate` or `python3 .agent/memory.py validate`")
+    print("   4. Save progress  : `zeroscan checkpoint --task-id \"TASK-001\" --summary \"...\"`")
+    print("   5. Add decision   : `zeroscan add-decision --id \"ADR-002\" --title \"...\" --decision \"...\"`")
     print("=" * 65)
 
     return 0
