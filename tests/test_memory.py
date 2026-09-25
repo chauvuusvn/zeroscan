@@ -127,6 +127,42 @@ class TestProjectMemoryEngine(unittest.TestCase):
         archive_file = self.agent_dir / "archive" / "TASK_LEDGER_ARCHIVE.jsonl"
         self.assertTrue(archive_file.is_file())
 
+    def test_cmd_checkpoint_and_add_decision(self):
+        """Verify cmd_checkpoint and cmd_add_decision CLI subcommands execute properly."""
+        args_cp = argparse.Namespace(
+            target=str(self.repo_root),
+            task_id="TASK-TEST-CLI",
+            summary="CLI checkpoint validation",
+            evidence="pytest 100% pass",
+            phase="Phase 2 - Testing",
+            next_task="TASK-TEST-CLI-NEXT",
+        )
+        ret_cp = memory.cmd_checkpoint(args_cp)
+        self.assertEqual(ret_cp, 0)
+
+        # Check ledger received the record
+        ledger = (self.agent_dir / "TASK_LEDGER.jsonl").read_text(encoding="utf-8")
+        self.assertIn("TASK-TEST-CLI", ledger)
+
+        # Check BOOT.md synced
+        boot = (self.agent_dir / "BOOT.md").read_text(encoding="utf-8")
+        self.assertIn("TASK-TEST-CLI-NEXT", boot)
+
+        # Check add_decision
+        args_dec = argparse.Namespace(
+            target=str(self.repo_root),
+            id="ADR-CLI-099",
+            title="Adopt CLI Governance",
+            decision="Enforce CLI checkpoint command",
+            context="Resolving audit gaps",
+            status="LOCKED",
+        )
+        ret_dec = memory.cmd_add_decision(args_dec)
+        self.assertEqual(ret_dec, 0)
+
+        decisions = (self.agent_dir / "DECISIONS.md").read_text(encoding="utf-8")
+        self.assertIn("ADR-CLI-099", decisions)
+
 
 if __name__ == "__main__":
     unittest.main()

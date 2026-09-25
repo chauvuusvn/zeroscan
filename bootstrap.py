@@ -22,7 +22,7 @@ try:
 except Exception:
     TEMPLATE_ROOT = Path.cwd()
 
-RAW_GITHUB_BASE = "https://raw.githubusercontent.com/chauvuusvn/zeroscan/main"
+RAW_GITHUB_BASE = "https://raw.githubusercontent.com/chauvuusvn/zeroscan/master"
 
 
 def get_template_bytes(rel_path: str) -> bytes:

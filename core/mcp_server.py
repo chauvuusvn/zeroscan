@@ -36,7 +36,7 @@ except ImportError:
     )
 
 SERVER_NAME = "zeroscan-mcp"
-SERVER_VERSION = "2.0.0"
+SERVER_VERSION = "2.1.0"
 PROTOCOL_VERSION = "2024-11-05"
 
 TOOLS = [
@@ -281,12 +281,15 @@ def handle_tools_call(name: str, arguments: Optional[Dict[str, Any]] = None) -> 
     elif name == "zeroscan_validate":
         is_valid, errors, warnings = validate_agent_memory(agent_dir)
         metrics = calculate_metrics(agent_dir)
-        size_bytes = metrics.get("total_bytes", 0)
+        size_bytes = metrics.get("bootstrap_context_bytes", 0)
+        total_sys_bytes = metrics.get("total_agent_system_bytes", 0)
+        pct = metrics.get("budget_used_percent", 0.0)
 
         status_text = (
             f"Zero-Scan Specification Validation:\n"
             f"- Status: {'PASS ✅' if is_valid else 'FAIL ❌'}\n"
-            f"- Total Context Size: {size_bytes} / {MAX_BOOTSTRAP_CONTEXT_BYTES} bytes (Budget: <= 10 KB)\n"
+            f"- Bootstrap Context Size: {size_bytes} / {MAX_BOOTSTRAP_CONTEXT_BYTES} bytes ({pct}% used, Budget <= 10 KB)\n"
+            f"- Total Agent Memory Size: {total_sys_bytes} bytes\n"
             f"- Errors: {errors if errors else 'None'}\n"
             f"- Warnings: {warnings if warnings else 'None'}\n"
             f"- Location: {agent_dir}"
@@ -356,5 +359,11 @@ def run_stdio_server():
             sys.stdout.flush()
 
 
-if __name__ == "__main__":
+def main() -> int:
+    """CLI entrypoint for zeroscan-mcp."""
     run_stdio_server()
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
