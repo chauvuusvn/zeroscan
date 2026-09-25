@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
 Zero-Scan Benchmark Evaluator (benchmarks/evaluator.py)
-Quantitative Context Budget and Token Reduction Benchmark Suite.
-Compares Full-Tree Ingestion vs Recursive Search vs Zero-Scan Project Memory V2.0.
+Analytical Simulation & Synthetic Benchmark Suite for Context Budget Modeling.
+Compares Full-Tree Ingestion vs Recursive Search vs Zero-Scan Project Memory V2.1.2.
 
 Copyright (c) 2026 Chau Vu / CPF-FAMILY. Licensed under MIT.
 """

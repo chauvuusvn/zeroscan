@@ -197,9 +197,17 @@ def handle_prompts_get(name: str, arguments: Optional[Dict[str, Any]] = None) ->
     raise ValueError(f"Unknown prompt: {name}")
 
 
+def resolve_safe_project_path(raw_path: Optional[str]) -> Path:
+    """Resolve and sanitize project path, preventing non-existent traversal."""
+    p = Path(raw_path or ".").resolve()
+    if not p.is_dir():
+        return Path.cwd().resolve()
+    return p
+
+
 def handle_tools_call(name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     args = arguments or {}
-    project_path = Path(args.get("project_path", ".")).resolve()
+    project_path = resolve_safe_project_path(args.get("project_path"))
     agent_dir = find_agent_dir(project_path)
 
     if name == "zeroscan_boot":

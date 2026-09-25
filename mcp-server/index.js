@@ -200,8 +200,18 @@ function handlePromptsGet(name, args = {}) {
     throw new Error(`Unknown prompt: ${name}`);
 }
 
+function resolveSafeProjectPath(rawPath) {
+    try {
+        const resolved = path.resolve(rawPath || '.');
+        if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
+            return resolved;
+        }
+    } catch {}
+    return process.cwd();
+}
+
 function handleToolsCall(name, args = {}) {
-    const projectPath = path.resolve(args.project_path || '.');
+    const projectPath = resolveSafeProjectPath(args.project_path);
     const agentDir = findAgentDir(projectPath);
 
     if (name === 'zeroscan_boot') {
