@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Memory V2.0 Bootstrap Generator (bootstrap.py)
+Project Memory V2.1 Bootstrap Generator (bootstrap.py)
 Automated scaffolding CLI to initialize standard .agent/ memory structure into any project repository.
 Zero external dependencies (pure Python 3.11+). Supports standalone curl execution.
 """
@@ -249,7 +249,7 @@ def bootstrap_project_memory(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Project Memory V2.0 Bootstrapper — Scaffold .agent/ for any repository",
+        description="Project Memory V2.1 Bootstrapper — Scaffold .agent/ for any repository",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -301,7 +301,7 @@ def main() -> int:
     domain_list = [d.strip() for d in args.domains.split(",") if d.strip()]
 
     print("=" * 65)
-    print("🚀 Project Memory V2.0 Scaffolder")
+    print("🚀 Project Memory V2.1 Scaffolder")
     print("=" * 65)
     print(f"Target Directory: {target_path}")
     print(f"Project Name    : {project_name}")
@@ -344,7 +344,7 @@ def main() -> int:
         print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
 
         if is_valid:
-            print("\n✅ Verification PASSED: New memory system is fully compliant with V2.0 standard.")
+            print("\n✅ Verification PASSED: New memory system is fully compliant with V2.1 standard.")
         else:
             print(f"\n⚠️  Verification Warnings/Errors: {len(errors)} errors, {len(warnings)} warnings.")
 

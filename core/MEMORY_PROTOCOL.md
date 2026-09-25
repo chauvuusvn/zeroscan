@@ -1,4 +1,4 @@
-# Project Memory V2.0 Protocol & Standard Operating Procedures
+# Project Memory V2.1 Protocol & Standard Operating Procedures
 
 This document outlines the **10 Golden Rules of Agent Memory** for all AI coding agents (Hermes, Claude Code, OpenAI Codex, OpenCode). Adherence to this protocol guarantees zero-scan bootstrap, zero context bloat, deterministic task resumption, and cross-session state integrity.
 

@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "title": "ProjectMapV2",
-  "description": "Project Memory V2.0 Codebase Map / GPS Schema",
+  "description": "Project Memory V2.1 Codebase Map / GPS Schema",
   "type": "object",
   "required": [
     "version",

@@ -1,3 +1,32 @@
+Metadata-Version: 2.4
+Name: zeroscan
+Version: 2.1.0
+Summary: The Zero-Scan, Git-Aware Context Engine for AI Coding Agents (Hermes, Claude Code, Codex, OpenCode)
+Author-email: Chau Vu / CPF-FAMILY <chauvuusvn@users.noreply.github.com>
+License: MIT
+Project-URL: Homepage, https://github.com/chauvuusvn/zeroscan
+Project-URL: Documentation, https://github.com/chauvuusvn/zeroscan#readme
+Project-URL: Repository, https://github.com/chauvuusvn/zeroscan.git
+Project-URL: Issues, https://github.com/chauvuusvn/zeroscan/issues
+Keywords: ai-agents,context-window,mcp,model-context-protocol,claude-code,cursor,windsurf,hermes-agent,token-optimization,zero-scan
+Classifier: Development Status :: 5 - Production/Stable
+Classifier: Intended Audience :: Developers
+Classifier: License :: OSI Approved :: MIT License
+Classifier: Programming Language :: Python :: 3
+Classifier: Programming Language :: Python :: 3.9
+Classifier: Programming Language :: Python :: 3.10
+Classifier: Programming Language :: Python :: 3.11
+Classifier: Programming Language :: Python :: 3.12
+Classifier: Topic :: Software Development :: Libraries :: Python Modules
+Classifier: Topic :: Scientific/Engineering :: Artificial Intelligence
+Requires-Python: >=3.9
+Description-Content-Type: text/markdown
+License-File: LICENSE
+Provides-Extra: dev
+Requires-Dist: pytest>=7.0.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.0.0; extra == "dev"
+Dynamic: license-file
+
 # ZeroScan (`.agent/`) — Project Memory V2.1
 
 [![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
@@ -23,7 +52,7 @@ zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI apps
 
 ## 🌟 Overview
 
-**Project Memory V2.1** is an open standard designed to eliminate context bloat, hallucination, and directory-crawling overhead in AI-driven software development.
+**Project Memory V2.0** is an open standard designed to eliminate context bloat, hallucination, and directory-crawling overhead in AI-driven software development.
 
 Traditional coding agents waste tens of thousands of tokens scanning entire codebases upon startup. Project Memory replaces scanning with a lightweight, Git-bound **Level 0 Boot Anchor** (`BOOT.md` < 1 KB) and an architectural **GPS Map** (`PROJECT_MAP.json`), ensuring agents boot instantly with `<= 10 KB` of total context.
 
@@ -42,7 +71,7 @@ When an orchestrator agent delegates tasks to subagents or workers (e.g. special
 
 ### 📊 Token Consumption Comparison
 
-| Lifecycle Stage | Traditional Approach (Full Scan) | Project Memory V2.1 (`.agent/`) | Token Savings |
+| Lifecycle Stage | Traditional Approach (Full Scan) | Project Memory V2.0 (`.agent/`) | Token Savings |
 |---|---|---|:---:|
 | **Session Boot** | Ingest whole repo (30k–100k+ tokens) | Read `BOOT.md` (< 1 KB / ~500 tokens) | **~95%** |
 | **Domain Navigation** | Recursive grep & tree traversal | Query `PROJECT_MAP.json` (< 3 KB) | **~90%** |
@@ -196,7 +225,7 @@ Zero-Scan includes a native **Model Context Protocol (MCP)** server for 1-click 
 
 ## 📊 Context Size Metrics & Limits
 
-Project Memory V2.1 strictly enforces context budgets:
+Project Memory V2.0 strictly enforces context budgets:
 
 - **Bootstrap Context Budget (`BOOTSTRAP_CONTEXT_BYTES`)**:
   $$\text{Size}(\text{BOOT.md}) + \text{Size}(\text{PROJECT_STATE.json}) + \text{Size}(\text{NEXT_TASK.md}) \le 10,240 \text{ bytes (10 KB)}$$
@@ -228,18 +257,15 @@ Project Memory V2.1 strictly enforces context budgets:
 | **3. Concurrent State Corruption** | Multiple parallel subagents writing to `PROJECT_STATE.json` simultaneously. | Partial or corrupt JSON writes (`JSONDecodeError`). | **Atomic Write Engine**: `memory.py` always writes to a temporary file (`.tmp.<pid>`) and performs an atomic POSIX `os.replace` rename. |
 | **4. Accidental Full-Scan Drift** | Agent invokes unrestricted `find .` or recursive grep across `node_modules` / `venv`. | Floods context window with 100k+ tokens, degrading model reasoning (Lost-in-the-Middle). | **Strict GPS Routing**: Agents must query `PROJECT_MAP.json` first to get exact file paths for the active domain only. |
 | **5. Phantom Commit Binding** | Agent records a completed task in ledger without committing code to git first. | State claims task is verified, but git HEAD points to uncommitted or non-existent commit. | **Git Verification Guard**: `memory.py validate` checks `git rev-parse HEAD` against recorded hashes and rejects uncommitted state. |
-| **6. Git Branch & Worktree Drift** | Switching branches or git worktrees while `.agent/` state tracks a different branch. | Agent acts on stale objectives from another feature branch. | **Branch-Aware Ledger**: Tasks are tagged with the active branch name, and boot scripts dynamically filter state for the checked-out branch. |
-| **7. Greedy MCP Context Bleed** | MCP clients fetch full ledger history (50+ tasks) into system prompts instead of active tasks. | Token waste and prompt dilution. | **Selective View Filters**: `zeroscan_read_state` defaults to compact mode (3 active tasks, <= 1 KB payload). |
-| **8. Git Rebase & Detached HEAD Deadlock** | Strict commit verification aborts git rebase or detached HEAD CI workflows. | CI/CD build pipeline failures during automated squash/merge. | **Non-Blocking Rebase Bypass**: Validator detects active rebase (`.git/rebase-merge`) and permits transient detached states gracefully. |
 
 ---
 
 ## ❓ Frequently Asked Questions (FAQ)
 
 <details>
-<summary><b>1. Which AI coding agents are compatible with Project Memory V2.1?</b></summary>
+<summary><b>1. Which AI coding agents are compatible with Project Memory V2.0?</b></summary>
 
-Project Memory V2.1 is designed as a model-agnostic, open specification. It works out-of-the-box with:
+Project Memory V2.0 is designed as a model-agnostic, open specification. It works out-of-the-box with:
 - **Hermes Agent**
 - **Claude Code (Anthropic)**
 - **OpenAI Codex**
@@ -254,7 +280,7 @@ Project Memory V2.1 is designed as a model-agnostic, open specification. It work
 </details>
 
 <details>
-<summary><b>3. How does Project Memory V2.1 prevent context drift across long sessions?</b></summary>
+<summary><b>3. How does Project Memory V2.0 prevent context drift across long sessions?</b></summary>
 
 Context drift occurs when agents rely on transient chat memory that gets truncated or diluted. Project Memory moves ground-truth memory out of the prompt window and into the filesystem:
 - Architecture rules are locked in `DECISIONS.md`.
@@ -263,7 +289,7 @@ Context drift occurs when agents rely on transient chat memory that gets truncat
 </details>
 
 <details>
-<summary><b>4. Can I apply Project Memory V2.1 to an existing, established repository?</b></summary>
+<summary><b>4. Can I apply Project Memory V2.0 to an existing, established repository?</b></summary>
 
 **Yes.** Simply run:
 ```bash

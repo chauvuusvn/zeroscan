@@ -186,7 +186,7 @@ def handle_prompts_get(name: str, arguments: Optional[Dict[str, Any]] = None) ->
                     "role": "user",
                     "content": {
                         "type": "text",
-                        "text": f"You are an AI Coding Agent operating under Zero-Scan Project Memory V2.0.\n\n=== LEVEL 0 BOOT ANCHOR ===\n{boot_content}\n\n=== CURRENT NEXT TASK ===\n{task_content}\n\nDo NOT scan the full repository. Proceed with your task directly using this grounded context.",
+                        "text": f"You are an AI Coding Agent operating under Zero-Scan Project Memory V2.1.\n\n=== LEVEL 0 BOOT ANCHOR ===\n{boot_content}\n\n=== CURRENT NEXT TASK ===\n{task_content}\n\nDo NOT scan the full repository. Proceed with your task directly using this grounded context.",
                     },
                 }
             ],

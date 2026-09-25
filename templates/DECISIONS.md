@@ -4,7 +4,7 @@ This file records key architectural, design, and structural decisions for the pr
 
 ---
 
-## ADR-001: Adoption of Project Memory V2.0 Architecture
+## ADR-001: Adoption of Project Memory V2.1 Architecture
 - **Date**: {{DATE}}
 - **Status**: [LOCKED]
 - **Context**: Autonomous agents require deterministic session resumption and fast context loading without scanning the entire repository.
