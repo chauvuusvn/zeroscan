@@ -123,7 +123,7 @@ def load_json(path: Path, default: Optional[Dict[str, Any]] = None) -> Dict[str,
 
 
 def atomic_write_json(path: Path, data: Dict[str, Any], auto_sync_boot: bool = True) -> None:
-    """Atomic write with fsync, file locking, and automatic BOOT.md synchronization."""
+    """Atomic write with fsync, file locking, cleanup on failure, and automatic BOOT.md synchronization."""
     with file_lock(path):
         path.parent.mkdir(parents=True, exist_ok=True)
         temp_path = path.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
@@ -136,13 +136,20 @@ def atomic_write_json(path: Path, data: Dict[str, Any], auto_sync_boot: bool = T
             except Exception:
                 pass
 
-        with open(temp_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, indent=2)
-            f.write("\n")
-            f.flush()
-            os.fsync(f.fileno())
+        try:
+            with open(temp_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2)
+                f.write("\n")
+                f.flush()
+                os.fsync(f.fileno())
 
-        temp_path.replace(path)
+            temp_path.replace(path)
+        finally:
+            if temp_path.is_file():
+                try:
+                    temp_path.unlink(missing_ok=True)
+                except Exception:
+                    pass
 
         if auto_sync_boot and path.name == "PROJECT_STATE.json":
             sync_boot_anchor(path.parent)

@@ -71,6 +71,7 @@ def get_template_bytes(rel_path: str) -> bytes:
         return local_path.read_bytes()
 
     url = f"{RAW_GITHUB_BASE}/{rel_path}"
+    print(f"ℹ️  [INFO] Fetching template '{rel_path}' from official GitHub repository...")
     try:
         req = urllib.request.Request(url, headers={"User-Agent": "ZeroScan-Bootstrapper/2.1.2"})
         with urllib.request.urlopen(req, timeout=10) as resp:
