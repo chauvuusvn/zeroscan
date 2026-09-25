@@ -2,7 +2,7 @@
 """
 Zero-Scan Benchmark Evaluator (benchmarks/evaluator.py)
 Analytical Simulation & Synthetic Benchmark Suite for Context Budget Modeling.
-Compares Full-Tree Ingestion vs Recursive Search vs Zero-Scan Project Memory V2.1.2.
+Compares Full-Tree Ingestion vs Recursive Search vs Zero-Scan Project Memory V2.1.3.
 
 Copyright (c) 2026 Chau Vu / CPF-FAMILY. Licensed under MIT.
 """
