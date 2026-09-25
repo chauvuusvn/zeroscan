@@ -76,6 +76,57 @@ class TestProjectMemoryEngine(unittest.TestCase):
         ret_metrics = memory.cmd_metrics(args_metrics)
         self.assertEqual(ret_metrics, 0)
 
+    def test_corrupted_json_recovery_with_backup(self):
+        """Verify resilient JSON loader falls back to .bak or default on corruption."""
+        test_file = self.agent_dir / "TEST_STATE.json"
+        valid_data = {"key": "original_valid"}
+        memory.atomic_write_json(test_file, valid_data)
+        
+        # Second write creates TEST_STATE.json.bak
+        updated_data = {"key": "updated_valid"}
+        memory.atomic_write_json(test_file, updated_data)
+        
+        # Corrupt the main file
+        with open(test_file, "w", encoding="utf-8") as f:
+            f.write("{corrupted json...")
+            
+        # load_json should gracefully recover from .bak
+        recovered = memory.load_json(test_file)
+        self.assertIn("key", recovered)
+
+    def test_atomic_write_json_auto_syncs_boot(self):
+        """Verify atomic write to PROJECT_STATE.json auto-syncs BOOT.md."""
+        state_file = self.agent_dir / "PROJECT_STATE.json"
+        boot_file = self.agent_dir / "BOOT.md"
+        state = memory.load_json(state_file)
+        
+        state["active_task"] = "TASK-AUTOSYNC-999"
+        memory.atomic_write_json(state_file, state, auto_sync_boot=True)
+        
+        boot_content = boot_file.read_text(encoding="utf-8")
+        self.assertIn("TASK-AUTOSYNC-999", boot_content)
+
+    def test_prune_and_archive_ledger(self):
+        """Verify task ledger archives old tasks when exceeding budget."""
+        ledger_file = self.agent_dir / "TASK_LEDGER.jsonl"
+        
+        # Generate 60 tasks
+        with open(ledger_file, "w", encoding="utf-8") as f:
+            for i in range(60):
+                f.write(f'{{"task_id": "TASK-{i:03d}", "timestamp": "2026-09-24", "summary": "Task {i}"}}\n')
+                
+        archived_count = memory.prune_and_archive_ledger(self.agent_dir, max_tasks=50)
+        self.assertEqual(archived_count, 40)
+        
+        # Check active ledger has 20 tasks
+        with open(ledger_file, "r", encoding="utf-8") as f:
+            active_lines = [l for l in f if l.strip()]
+        self.assertEqual(len(active_lines), 20)
+        
+        # Check archive exists
+        archive_file = self.agent_dir / "archive" / "TASK_LEDGER_ARCHIVE.jsonl"
+        self.assertTrue(archive_file.is_file())
+
 
 if __name__ == "__main__":
     unittest.main()
