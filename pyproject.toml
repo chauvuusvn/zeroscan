@@ -59,6 +59,9 @@ Issues = "https://github.com/chauvuusvn/zeroscan/issues"
 packages = ["core", "benchmarks"]
 py-modules = ["bootstrap"]
 
+[tool.setuptools.package-data]
+"*" = ["*.md", "*.json", "*.jsonl"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 python_files = ["test_*.py"]

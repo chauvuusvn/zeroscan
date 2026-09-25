@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Memory V2.1 Self-Healing Engine (core/memory.py)
+Project Memory V2.1.2 Self-Healing Engine (core/memory.py)
 Standard runtime for managing Git-backed .agent/ project memory.
 Pure Python 3.9+ standard library implementation (zero external dependencies).
 """
@@ -22,6 +22,7 @@ try:
     import fcntl
     HAS_FCNTL = True
 except ImportError:
+    fcntl = None  # type: ignore
     HAS_FCNTL = False
 
 MAX_BOOTSTRAP_CONTEXT_BYTES = 10240  # 10 KB budget ceiling
@@ -30,26 +31,40 @@ SPECIFICATION_VERSION = "2.1.2"
 
 @contextlib.contextmanager
 def file_lock(lock_path: Path, timeout: float = 5.0):
-    """Cross-platform advisory file lock to prevent multi-agent concurrent write collisions."""
+    """Cross-platform atomic file lock supporting POSIX (fcntl) and Windows (O_EXCL atomic spinlock)."""
     lock_file = lock_path.with_suffix(lock_path.suffix + ".lock")
     start_time = time.time()
+    acquired = False
     fd = None
-    try:
-        lock_file.parent.mkdir(parents=True, exist_ok=True)
+
+    lock_file.parent.mkdir(parents=True, exist_ok=True)
+    if HAS_FCNTL and fcntl is not None:
         fd = os.open(str(lock_file), os.O_CREAT | os.O_RDWR)
-        if HAS_FCNTL:
-            while True:
-                try:
-                    fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-                    break
-                except (BlockingIOError, IOError):
-                    if time.time() - start_time > timeout:
-                        break
-                    time.sleep(0.05)
+        while True:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                acquired = True
+                break
+            except (BlockingIOError, IOError):
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Zero-Scan: Timed out waiting for file lock on {lock_path}")
+                time.sleep(0.05)
+    else:
+        while True:
+            try:
+                fd = os.open(str(lock_file), os.O_CREAT | os.O_EXCL | os.O_RDWR)
+                acquired = True
+                break
+            except (FileExistsError, OSError):
+                if time.time() - start_time > timeout:
+                    raise TimeoutError(f"Zero-Scan: Timed out waiting for file lock on {lock_path}")
+                time.sleep(0.05)
+
+    try:
         yield
     finally:
         if fd is not None:
-            if HAS_FCNTL:
+            if HAS_FCNTL and fcntl is not None:
                 try:
                     fcntl.flock(fd, fcntl.LOCK_UN)
                 except Exception:
@@ -58,11 +73,11 @@ def file_lock(lock_path: Path, timeout: float = 5.0):
                 os.close(fd)
             except Exception:
                 pass
-        try:
-            if lock_file.is_file():
+        if not HAS_FCNTL and acquired:
+            try:
                 lock_file.unlink(missing_ok=True)
-        except Exception:
-            pass
+            except Exception:
+                pass
 
 
 def find_agent_dir(start_path: Optional[Path] = None, require_existing: bool = False) -> Path:
@@ -268,8 +283,9 @@ def record_task_ledger(
         "evidence": evidence,
     }
 
-    with open(ledger_file, "a", encoding="utf-8") as f:
-        f.write(json.dumps(record) + "\n")
+    with file_lock(ledger_file):
+        with open(ledger_file, "a", encoding="utf-8") as f:
+            f.write(json.dumps(record) + "\n")
 
     prune_and_archive_ledger(agent_dir, max_active=max_active_tasks)
 
@@ -286,33 +302,34 @@ def prune_and_archive_ledger(
     if not ledger_file.is_file():
         return 0
 
-    with open(ledger_file, "r", encoding="utf-8") as f:
-        lines = [line.strip() for line in f if line.strip()]
+    with file_lock(ledger_file):
+        with open(ledger_file, "r", encoding="utf-8") as f:
+            lines = [line.strip() for line in f if line.strip()]
 
-    if len(lines) <= limit:
-        return 0
+        if len(lines) <= limit:
+            return 0
 
-    archive_dir = agent_dir / "archive"
-    archive_dir.mkdir(parents=True, exist_ok=True)
-    archive_file = archive_dir / "TASK_LEDGER_ARCHIVE.jsonl"
+        archive_dir = agent_dir / "archive"
+        archive_dir.mkdir(parents=True, exist_ok=True)
+        archive_file = archive_dir / "TASK_LEDGER_ARCHIVE.jsonl"
 
-    split_index = max(0, len(lines) - keep_recent)
-    to_archive = lines[:split_index]
-    to_keep = lines[split_index:]
+        split_index = max(0, len(lines) - keep_recent)
+        to_archive = lines[:split_index]
+        to_keep = lines[split_index:]
 
-    with open(archive_file, "a", encoding="utf-8") as fa:
-        for item in to_archive:
-            fa.write(item + "\n")
+        with open(archive_file, "a", encoding="utf-8") as fa:
+            for item in to_archive:
+                fa.write(item + "\n")
 
-    temp_ledger = ledger_file.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
-    with open(temp_ledger, "w", encoding="utf-8") as fk:
-        for item in to_keep:
-            fk.write(item + "\n")
-        fk.flush()
-        os.fsync(fk.fileno())
+        temp_ledger = ledger_file.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
+        with open(temp_ledger, "w", encoding="utf-8") as fk:
+            for item in to_keep:
+                fk.write(item + "\n")
+            fk.flush()
+            os.fsync(fk.fileno())
 
-    temp_ledger.replace(ledger_file)
-    return len(to_archive)
+        temp_ledger.replace(ledger_file)
+        return len(to_archive)
 
 
 def add_decision_record(
@@ -348,7 +365,39 @@ def add_decision_record(
         atomic_write_json(state_file, state, auto_sync_boot=True)
 
 
-def validate_agent_memory(agent_dir: Path) -> Tuple[bool, List[str], List[str]]:
+def update_next_task_doc(
+    agent_dir: Path,
+    task_id: str,
+    description: str,
+    domains: Optional[List[str]] = None,
+    criteria: Optional[List[str]] = None,
+) -> None:
+    """Update NEXT_TASK.md with full specifications and acceptance criteria."""
+    task_file = agent_dir / "NEXT_TASK.md"
+    d_list = ", ".join(domains) if domains else "core"
+    crit_text = "\n".join([f"- [ ] {c}" for c in (criteria or ["Verify implementation with tests", "Pass validation"])])
+
+    content = f"""# CURRENT ACTIVE TASK: {task_id}
+
+- **Task ID:** `{task_id}`
+- **Assigned Domain(s):** `{d_list}`
+- **Status:** `IN_PROGRESS`
+
+## Objective & Description
+{description}
+
+## Acceptance Criteria
+{crit_text}
+"""
+    temp_task = task_file.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
+    with open(temp_task, "w", encoding="utf-8") as f:
+        f.write(content)
+        f.flush()
+        os.fsync(f.fileno())
+    temp_task.replace(task_file)
+
+
+def validate_agent_memory(agent_dir: Path, strict_git: bool = False) -> Tuple[bool, List[str], List[str]]:
     """Strict specification validator for .agent memory compliance and budget."""
     errors = []
     warnings = []
@@ -389,7 +438,10 @@ def validate_agent_memory(agent_dir: Path) -> Tuple[bool, List[str], List[str]]:
     # Check Git synchronization
     git_info = get_git_status_summary(agent_dir.parent)
     if git_info.get("is_dirty"):
-        warnings.append("Git working tree is dirty (uncommitted changes detected).")
+        if strict_git:
+            errors.append("Strict validation failed: Git working tree is dirty (uncommitted changes).")
+        else:
+            warnings.append("Git working tree is dirty (uncommitted changes detected).")
 
     is_valid = len(errors) == 0
     return is_valid, errors, warnings
@@ -408,7 +460,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     git_info = get_git_status_summary(agent_dir.parent)
 
     print("=" * 60)
-    print(f"🏛️  ZERO-SCAN PROJECT MEMORY V2.1 — STATUS")
+    print(f"🏛️  ZERO-SCAN PROJECT MEMORY V2.1.2 — STATUS")
     print("=" * 60)
     print(f"Project Name     : {state.get('project_name', 'Unknown')}")
     print(f"Phase            : {state.get('current_phase') or state.get('phase', 'Unknown')}")
@@ -440,8 +492,9 @@ def cmd_metrics(args: argparse.Namespace) -> int:
 def cmd_validate(args: argparse.Namespace) -> int:
     """Validate memory integrity against specification."""
     agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
-    print(f"🔍 Validating Project Memory V2.1 at: {agent_dir} ...")
-    is_valid, errors, warnings = validate_agent_memory(agent_dir)
+    print(f"🔍 Validating Project Memory V2.1.2 at: {agent_dir} ...")
+    strict = getattr(args, "strict", False)
+    is_valid, errors, warnings = validate_agent_memory(agent_dir, strict_git=strict)
 
     for w in warnings:
         print(f"  ⚠️  [WARNING] {w}")
@@ -492,9 +545,10 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
         return 1
 
     task_id = getattr(args, "task_id", None) or f"TASK-{int(time.time())}"
-    summary = getattr(args, "summary", None) or "Task completed"
-    evidence = getattr(args, "evidence", None) or "verified"
+    summary = getattr(args, "summary", None) or getattr(args, "task_summary", None) or "Task completed"
+    evidence = getattr(args, "evidence", None) or getattr(args, "test_status", None) or "verified"
     phase = getattr(args, "phase", None)
+    status = getattr(args, "status", None)
 
     record_task_ledger(
         agent_dir=agent_dir,
@@ -514,10 +568,24 @@ def cmd_checkpoint(args: argparse.Namespace) -> int:
             state["current_phase"] = phase
         else:
             state["phase"] = phase
-    if getattr(args, "next_task", None):
-        state["active_task"] = args.next_task
-    state["metrics"] = calculate_metrics(agent_dir)
+    if status:
+        state["status"] = status
 
+    next_id = getattr(args, "next_task_id", None) or getattr(args, "next_task", None)
+    next_desc = getattr(args, "next_task_desc", None)
+
+    if next_id or next_desc:
+        target_next = next_id or "NEXT-TASK"
+        state["active_task"] = target_next
+        update_next_task_doc(
+            agent_dir=agent_dir,
+            task_id=target_next,
+            description=next_desc or f"Objective for {target_next}",
+        )
+    elif getattr(args, "active_task", None):
+        state["active_task"] = args.active_task
+
+    state["metrics"] = calculate_metrics(agent_dir)
     atomic_write_json(state_file, state, auto_sync_boot=True)
     print(f"✅ Checkpoint recorded for task [{task_id}] bound to Git commit: {git_info['commit'][:8]}")
     return 0
@@ -543,7 +611,7 @@ def cmd_add_decision(args: argparse.Namespace) -> int:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.1 CLI Engine")
+    parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.1.2 CLI Engine")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
 
     p_status = subparsers.add_parser("status", help="Show project memory status and metrics")
@@ -555,6 +623,7 @@ def main() -> int:
 
     p_val = subparsers.add_parser("validate", help="Validate memory files against schema & budget")
     p_val.add_argument("--target", "-t", type=str, help="Target project root directory")
+    p_val.add_argument("--strict", action="store_true", help="Enforce strict Git validation (fail on dirty working tree)")
 
     p_sync = subparsers.add_parser("sync", help="Synchronize BOOT.md and checkpoint git commit")
     p_sync.add_argument("--target", "-t", type=str, help="Target project root directory")
@@ -562,8 +631,15 @@ def main() -> int:
     p_cp = subparsers.add_parser("checkpoint", help="Record task completion and checkpoint state")
     p_cp.add_argument("--task-id", type=str, help="Task ID (e.g. TASK-001)")
     p_cp.add_argument("--summary", "-m", type=str, help="Summary of work completed")
+    p_cp.add_argument("--task-summary", type=str, help="Alias for --summary")
     p_cp.add_argument("--evidence", "-e", type=str, help="Evidence or test execution proof")
+    p_cp.add_argument("--test-status", type=str, help="Alias for --evidence")
     p_cp.add_argument("--phase", "-p", type=str, help="Current development phase")
+    p_cp.add_argument("--status", "-s", type=str, help="Project status (e.g. IN_PROGRESS, COMPLETED)")
+    p_cp.add_argument("--next-task", type=str, help="Next task name/id")
+    p_cp.add_argument("--next-task-id", type=str, help="Next task ID")
+    p_cp.add_argument("--next-task-desc", type=str, help="Next task description")
+    p_cp.add_argument("--record-ledger", action="store_true", help="Confirm ledger recording")
     p_cp.add_argument("--target", "-t", type=str, help="Target project root directory")
 
     p_dec = subparsers.add_parser("add-decision", help="Record a new Architectural Decision Record (ADR)")
