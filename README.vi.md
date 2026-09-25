@@ -1,15 +1,10 @@
-# ZeroScan (`.agent/`) — Project Memory V2.1
+# ZeroScan (`.agent/`) — Project Memory V2.1.2
 
 [![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
 [![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.2-blue.svg)](https://pypi.org/project/zeroscan/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
 [![Context Budget](https://img.shields.io/badge/Context%20Budget-%3C=10%20KB-success.svg)](https://github.com/chauvuusvn/zeroscan)
-
-[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Bài Viết Chuyên Sâu ](articles/zero-scan-llm-vram-optimization.vi.md)
-
-> **Cơ chế quản trị ngữ cảnh Zero-Scan gắn kết với Git dành cho AI Coding Agents**  
-> Tương thích hoàn toàn với Hermes Agent, Claude Code, Cursor, Windsurf, OpenAI Codex, và OpenCode.
 
 ```bash
 # Cài đặt 1-chạm toàn cầu qua pip
@@ -19,20 +14,49 @@ pip install zeroscan
 zeroscan-bootstrap --name "du-an-cua-ban" --mission "Xây dựng hệ sinh thái AI"
 ```
 
+[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Bài Viết Chuyên Sâu ](articles/zero-scan-llm-vram-optimization.vi.md)
+
+> **Giao Thức Quản Trị Ngữ Cảnh Độc Lập Cho Mọi AI Coding Agent & LLM**  
+> Tương thích toàn diện với Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, và Hermes.
+
 ---
 
 ## 🌟 Tổng quan
 
-**Project Memory V2.1** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
+**Zero-Scan Project Memory V2.1.2** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
 
 Các coding agent truyền thống thường lãng phí hàng chục ngàn token để quét toàn bộ codebase mỗi khi bắt đầu phiên làm việc. Project Memory thay thế việc quét bừa bãi bằng một **File neo khởi động Cấp 0** (`BOOT.md` < 1 KB) và một **Bản đồ kiến trúc GPS** (`PROJECT_MAP.json`), đảm bảo agent khởi động tức thì với tổng ngữ cảnh `<= 10 KB`.
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    MỌI LLM / AI CODING AGENT                │
+│  (Claude 3.5 · GPT-4o · Gemini 1.5 · DeepSeek · Qwen · Llama)│
+└──────────────────────────────┬──────────────────────────────┘
+                               │
+               ┌───────────────┴───────────────┐
+               ▼                               ▼
+       Máy Chủ MCP Protocol              Engine CLI
+      (Cursor / Windsurf / Trae)      (Terminal / CI/CD)
+               │                               │
+               └───────────────┬───────────────┘
+                               ▼
+              ┌─────────────────────────────────┐
+              │      Lõi Ngữ Cảnh Zero-Scan     │
+              │  • File Neo Khởi Động (BOOT)    │
+              │  • Định Tuyến GPS Module (MAP)  │
+              │  • Khóa File Đa Tiến Trình      │
+              │  • Phục Hồi JSON Tự Động (.bak) │
+              └────────────────┬────────────────┘
+                               ▼
+                   KHO MÃ NGUỒN GIT MỤC TIÊU
+```
 
 ---
 
 ## 💡 Vì sao hệ thống tiết kiệm 90–95% Token?
 
 ### 1. Khởi động Zero-Scan (Level 0 Boot Anchor)
-Các agent thông thường đọc toàn bộ kho mã nguồn trong mỗi lượt hội thoại, dễ dàng đốt 30.000–100.000+ token trước khi viết dòng code đầu tiên. Với Project Memory, agent **chỉ đọc duy nhất `BOOT.md` (~1 KB / ~500 tokens)**, ngay lập tức nắm vững kiến trúc cốt lõi và nhiệm vụ cần làm mà không cần đọc các thư mục không liên quan.
+Các agent thông thường đọc toàn bộ kho mã nguồn trong mỗi lượt hội thoại, dễ dàng đốt 30.000–200.000+ token trước khi viết dòng code đầu tiên. Với Project Memory, agent **chỉ đọc duy nhất `BOOT.md` (~1 KB / ~500 tokens)**, ngay lập tức nắm vững kiến trúc cốt lõi và nhiệm vụ cần làm mà không cần đọc các thư mục không liên quan.
 
 ### 2. Định vị GPS qua `PROJECT_MAP.json`
 Thay vì tìm kiếm regex tốn kém trên toàn bộ cây thư mục, agent tra cứu `PROJECT_MAP.json` để lấy đường dẫn chính xác của file mã nguồn và test case thuộc domain đang xử lý.
@@ -45,12 +69,14 @@ Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực t�
 
 ---
 
-## 🛡️ Điểm Mới Trong Phiên Bản V2.1 (Self-Healing Engine)
+## 🛡️ Điểm Mới Trong Phiên Bản V2.1.2 (Enterprise Ready)
 
 1. **⚡ Tự Động Đồng Bộ Cấp Nguyên Tử (Atomic State-to-Boot Auto-Sync):** Sửa `PROJECT_STATE.json` là `BOOT.md` tự cập nhật theo thời gian thực, triệt tiêu nguy cơ trôi ngữ cảnh.
 2. **🔄 Phục Hồi File JSON Hỏng (Resilient JSON Loader & `.bak` Fallback):** Tự động khôi phục từ bản backup `.bak` nếu file JSON bị đứt gãy giữa chừng (Zero-Crash Guarantee).
-3. **📦 Tự Động Lưu Trữ Sổ Ghi Tác Vụ (Ledger Auto-Pruning):** Tự động chuyển các tác vụ cũ sang `.agent/archive/` khi vượt quá 50 tasks, bảo vệ vĩnh viễn ngân sách $\le 10\text{ KB}$.
-4. **🔒 Kiểm Soát Biên Giới Thư Mục (Bound-Checked Agent Locator):** Trả về thông báo lỗi có cấu trúc thay vì rơi tự do leo lên `/`.
+3. **🔒 Khóa File Đồng Thời Đa Nền Tảng (Cross-Platform Concurrency Locking):** Sử dụng `fcntl.flock` trên Linux/macOS và spinlock nguyên tử trên Windows kèm cơ chế ném lỗi Timeout, bảo vệ tuyệt đối khi nhiều subagent cùng ghi dữ liệu.
+4. **🛡️ Khởi Tạo An Toàn Với Cơ Chế Rollback Nguyên Tử (Atomic Bootstrap Staging):** Dựng khung trong thư mục tạm trước, chỉ tráo đổi khi 100% file đã hoàn tất.
+5. **📦 Đóng Gói Dữ Liệu Offline (Package Data Bundling):** Toàn bộ template được đóng gói sẵn trong wheel của PyPI, chạy offline 100% không cần internet.
+6. **📦 Tự Động Lưu Trữ Sổ Ghi Tác Vụ (Ledger Auto-Pruning):** Tự động chuyển các tác vụ cũ sang `.agent/archive/` khi vượt quá 50 tasks, bảo vệ vĩnh viễn ngân sách $\le 10\text{ KB}$.
 
 ---
 
@@ -77,7 +103,7 @@ Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực t�
 |---|---|---|---|---|
 | **1** | **The Stale State Trap** | Agent làm xong việc nhưng quên cập nhật `BOOT.md` / `PROJECT_STATE.json`. | Phiên sau khởi động lại từ trạng thái cũ, làm trùng việc hoặc hỏng logic. | **Session Exit Gate**: Cưỡng chế chạy checkpoint trước khi kết thúc phiên. |
 | **2** | **Decisions Bloat Trap** | Nhồi nhét hàng chục quyết định vụn vặt vào `DECISIONS.md` $> 20\text{ KB}$. | Vượt ngân sách $10\text{ KB}$, làm phình KV-cache và loãng ngữ cảnh. | **Compaction Protocol**: Nén các quyết định đã ổn định thành tiên đề, dọn phần cũ vào archive. |
-| **3** | **Concurrent Corruption** | Nhiều subagent cùng lúc ghi vào `PROJECT_STATE.json`. | Ghi đè file đứt gãy (`JSONDecodeError`). | **Atomic Write Engine**: Ghi file tạm `.tmp.<pid>` + `fsync` + đổi tên nguyên tử (`os.replace`). |
+| **3** | **Concurrent Corruption** | Nhiều subagent cùng lúc ghi vào `PROJECT_STATE.json`. | Ghi đè file đứt gãy hoặc mất dữ liệu (Lost Update). | **File Lock & Atomic Write**: `file_lock()` đa nền tảng + `.tmp.<pid>` + `fsync` + `os.replace`. |
 | **4** | **Accidental Full-Scan Drift** | Agent gọi lệnh quét đệ quy vô tội vạ vào `node_modules` / `venv`. | Bơm $100\text{k}+$ tokens rác vào context, làm suy giảm khả năng suy luận. | **Strict GPS Routing**: Buộc Agent tra cứu `PROJECT_MAP.json` để chỉ đọc đúng file cần thiết. |
 | **5** | **Phantom Commit Binding** | Đánh dấu hoàn thành task trong ledger nhưng chưa commit code thật vào git. | State ghi là "đã xong" nhưng git HEAD trỏ vào commit ảo/cũ. | **Git Verification Guard**: Validator đối chiếu hash thực tế của `git rev-parse HEAD`. |
 | **6** | **Git Branch & Worktree Drift** | Đổi nhánh git nhưng `.agent/` vẫn lưu trạng thái của nhánh cũ. | Agent làm việc dựa trên mục tiêu của nhánh khác. | **Branch-Aware Ledger**: Gắn tag tên branch vào từng task, tự động lọc theo nhánh hiện hành. |
@@ -96,10 +122,16 @@ pip install zeroscan
 zeroscan-bootstrap --name "my-project" --mission "Build Agent Fleet" --domains "core,api,auth,db"
 
 # 3. Kiểm toán tuân thủ ngân sách ngữ cảnh
+zeroscan status
 zeroscan validate
-zeroscan metrics
 
-# 4. Chạy MCP Server cho Cursor / Claude Desktop / Trae
+# 4. Lưu checkpoint tiến độ với bằng chứng kiểm thử và cập nhật task tiếp theo
+zeroscan checkpoint --task-id "TASK-001" --summary "Hoàn thành module auth" --evidence "pytest 15/15 pass" --next-task-id "TASK-002" --next-task-desc "Xây dựng API thanh toán"
+
+# 5. Ghi nhận quyết định kiến trúc (ADR)
+zeroscan add-decision --id "ADR-002" --title "Dùng PostgreSQL làm CSDL" --decision "Sử dụng Postgres 16 đảm bảo tính toàn vẹn ACID"
+
+# 6. Chạy MCP Server cho Cursor / Claude Desktop / Windsurf
 zeroscan-mcp
 ```
 

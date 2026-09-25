@@ -1,6 +1,6 @@
-# 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1
+# 📘 Zero-Scan (`.agent/`) Usage Guide — Project Memory V2.1.2
 
-> **Target Audience:** Software Engineers & Autonomous AI Coding Agents (Hermes, Claude Code, Cursor, Windsurf, OpenAI Codex, OpenCode).  
+> **Target Audience:** Software Engineers & Autonomous AI Coding Agents (Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, Hermes).  
 > **Standard:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Standard Library).  
 > **PyPI Distribution:** `pip install zeroscan`
 
@@ -8,12 +8,12 @@
 
 ## 🎯 1. Overview & Core Mission
 
-The **Zero-Scan Project Memory V2.1** (`.agent/`) architecture resolves the four major bottlenecks in AI-driven software development:
+The **Zero-Scan Project Memory V2.1.2** (`.agent/`) architecture resolves the four major bottlenecks in AI-driven software development:
 
-1. **Zero Context Waste (Zero-Scan):** New agent sessions do not need to scan 50,000–100,000 LOC. Loading only the **Bootstrap Context (~2.5 KB)** restores 100% context, architecture invariants, and current objectives instantly.
+1. **Zero Context Waste (Zero-Scan):** New agent sessions do not need to scan 50,000–200,000 LOC. Loading only the **Bootstrap Context (~2.5 KB)** restores 100% context, architecture invariants, and current objectives instantly.
 2. **ADR Locking:** Prevents subsequent agent sessions from silently reverting or rewriting architectural decisions locked in `DECISIONS.md`.
 3. **Immutable Evidence Gate:** A task is marked `DONE` only when validated with reproducible test executions (`pytest`, `unittest`) and bound to a verifiable Git Commit SHA.
-4. **Self-Healing Engine:** Auto-synchronizes `BOOT.md`, recovers from corrupted state files via `.bak` fallbacks, and automatically archives completed tasks when the ledger grows.
+4. **Self-Healing & Concurrency Engine:** Cross-platform advisory file locking (`fcntl.flock` + Windows spinlock), automatic state-to-boot synchronization, and resilient `.bak` JSON recovery.
 
 ---
 
@@ -41,7 +41,7 @@ The **Zero-Scan Project Memory V2.1** (`.agent/`) architecture resolves the four
 pip install zeroscan
 ```
 
-### B. Scaffold `.agent/` for any new or existing repository
+### B. Scaffold `.agent/` for any repository
 ```bash
 zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI systems" --domains "core,auth,api,db"
 ```
@@ -51,15 +51,22 @@ zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI syst
 # 1. Check status and schema compliance
 zeroscan status
 zeroscan validate
+zeroscan validate --strict
 
 # 2. Inspect context budget metrics
 zeroscan metrics
 zeroscan metrics --json
 
-# 3. Synchronize BOOT.md and checkpoint git commit
+# 3. Checkpoint task completion and update next task
+zeroscan checkpoint --task-id "TASK-001" --summary "Implement auth module" --evidence "pytest 15/15 pass" --next-task-id "TASK-002" --next-task-desc "Build billing API"
+
+# 4. Record an Architectural Decision Record (ADR)
+zeroscan add-decision --id "ADR-002" --title "Use PostgreSQL for DB" --decision "Adopt Postgres 16 for ACID compliance"
+
+# 5. Synchronize BOOT.md and checkpoint git commit
 zeroscan sync
 
-# 4. Start MCP Server for Claude Desktop / Cursor / Windsurf
+# 6. Start MCP Server for Claude Desktop / Cursor / Windsurf
 zeroscan-mcp
 ```
 
@@ -67,7 +74,7 @@ zeroscan-mcp
 
 ## 📊 4. Context Budget Metrics
 
-| Metric | Definition | Threshold | Actual Zero-Scan V2.1 |
+| Metric | Definition | Threshold | Actual Zero-Scan V2.1.2 |
 |---|---|---|---|
 | **`BOOTSTRAP_CONTEXT_BYTES`** | Total bytes of `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
 | **`TOTAL_AGENT_SYSTEM_BYTES`** | Full `.agent/` directory footprint (helpers, protocols, ADRs) | Informational | **~29.4 KB** |
@@ -93,15 +100,15 @@ zeroscan-mcp
 
 ### Pitfall 1: Phantom Commits (Uncommitted Task Completion)
 * **Symptom:** Task marked complete in ledger, but no matching Git commit exists.
-* **Recovery:** Run `zeroscan validate`. Commit working tree changes first: `git add . && git commit -m "fix: complete task"`, then re-sync state.
+* **Recovery:** Run `zeroscan validate`. Commit working tree changes first: `git add . && git commit -m "fix: complete task"`, then re-checkpoint.
 
 ### Pitfall 2: Decisions Bloat
 * **Symptom:** `DECISIONS.md` exceeds 20 KB over long sprints.
 * **Recovery:** Apply Compaction Protocol: Consolidate stabilized invariants into `PROJECT_STATE.json`, archive historical ADRs to `DECISIONS_ARCHIVE.md`.
 
 ### Pitfall 3: Multi-Agent Race Conditions
-* **Symptom:** Parallel subagents write simultaneously to state files.
-* **Recovery:** Engine enforces atomic writes (`.tmp.<pid>` + `os.replace` + `fsync`).
+* **Symptom:** Parallel subagents write simultaneously to state files causing lost updates.
+* **Recovery:** Engine enforces cross-platform advisory file locking (`file_lock()` + `.tmp.<pid>` + `os.replace` + `fsync`).
 
 ### Pitfall 4: Accidental Full-Scan Drift
 * **Symptom:** Agent runs unrestricted recursive grep across `node_modules` or `venv`.
@@ -113,7 +120,7 @@ zeroscan-mcp
 
 ### Pitfall 6: Greedy MCP Context Bleed
 * **Symptom:** MCP clients inject full 50-task ledger history into prompts.
-* **Recovery:** Use `zeroscan_read_state` in default `compact` mode (<= 1 KB payload, 3 active tasks).
+* **Recovery:** Use `zeroscan_read_state` in default `compact` mode ($\le 1\text{ KB}$ payload, 3 active tasks).
 
 ### Pitfall 7: Git Rebase & Detached HEAD Deadlock
 * **Symptom:** Pre-commit validation blocks automated CI rebase or squash merges.

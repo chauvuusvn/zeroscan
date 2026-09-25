@@ -1,6 +1,6 @@
-# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1)
+# 📘 HƯỚNG DẪN SỬ DỤNG HỆ THỐNG ZEROSCAN (PROJECT MEMORY V2.1.2)
 
-> **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Hermes, Claude Code, Cursor, Windsurf, Codex, OpenCode).  
+> **Dành cho:** Kỹ sư phần mềm & Toàn bộ AI Agents (Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, Hermes).  
 > **Phiên bản:** `v2.1.2 (Production / Enterprise Ready)` — Zero External Dependencies (Pure Python 3.9+ Stdlib).  
 > **Phát hành PyPI:** `pip install zeroscan`
 
@@ -8,12 +8,12 @@
 
 ## 🎯 1. TỔNG QUAN & MỤC TIÊU CỐT LÕI
 
-Hệ thống **Zero-Scan Project Memory V2.1** (`.agent/`) giải quyết 4 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
+Hệ thống **Zero-Scan Project Memory V2.1.2** (`.agent/`) giải quyết 4 điểm nghẽn lớn nhất trong việc phát triển phần mềm bằng AI Agents:
 
-1. **Tránh lãng phí Context & Token (Zero-Scan):** Agent mới vào session không cần đọc lại 50.000–100.000 dòng code của repo. Chỉ cần nạp **Bootstrap Context (~2.5 KB)** là nắm trọn trạng thái, kiến trúc và task cần làm.
+1. **Tránh lãng phí Context & Token (Zero-Scan):** Agent mới vào session không cần đọc lại 50.000–200.000 dòng code của repo. Chỉ cần nạp **Bootstrap Context (~2.5 KB)** là nắm trọn trạng thái, kiến trúc và task cần làm.
 2. **Khóa kiến trúc (ADR Locking):** Ngăn chặn agent sau tự ý "sáng tạo" đập đi xây lại những quyết định kiến trúc cốt lõi đã chốt từ trước trong `DECISIONS.md`.
 3. **Cổng bằng chứng (Evidence Gate):** Chỉ đánh dấu `DONE` khi có bằng chứng chạy test thật (`pytest`, `unittest`) và được gắn chặt với Git Commit Hash thật.
-4. **Cơ chế tự chữa lành (Self-Healing Engine):** Tự động đồng bộ `BOOT.md`, phục hồi khi file JSON bị lỗi, và tự nén lưu trữ khi sổ cái task phình to.
+4. **Cơ chế tự chữa lành & Bảo vệ đa tiến trình (Self-Healing & Concurrency Engine):** Khóa file đa nền tảng (`fcntl.flock` + Windows spinlock), tự động đồng bộ `BOOT.md`, phục hồi khi file JSON bị lỗi, và tự nén lưu trữ khi sổ cái task phình to.
 
 ---
 
@@ -51,15 +51,22 @@ zeroscan-bootstrap --name "my-awesome-project" --mission "Xây dựng hệ thố
 # 1. Kiểm tra trạng thái và độ tuân thủ quy chuẩn
 zeroscan status
 zeroscan validate
+zeroscan validate --strict
 
 # 2. Đo lường ngân sách ngữ cảnh (Context Budget Metrics)
 zeroscan metrics
 zeroscan metrics --json
 
-# 3. Đồng bộ hóa BOOT.md và tạo checkpoint Git
+# 3. Lưu checkpoint tiến độ với bằng chứng kiểm thử và cập nhật task tiếp theo
+zeroscan checkpoint --task-id "TASK-001" --summary "Hoàn thành module auth" --evidence "pytest 15/15 pass" --next-task-id "TASK-002" --next-task-desc "Xây dựng API thanh toán"
+
+# 4. Ghi nhận quyết định kiến trúc (ADR)
+zeroscan add-decision --id "ADR-002" --title "Dùng PostgreSQL làm CSDL" --decision "Sử dụng Postgres 16 đảm bảo tính toàn vẹn ACID"
+
+# 5. Đồng bộ hóa BOOT.md và tạo checkpoint Git
 zeroscan sync
 
-# 4. Khởi động máy chủ MCP Server cho Claude Desktop / Cursor / Windsurf
+# 6. Khởi động máy chủ MCP Server cho Claude Desktop / Cursor / Windsurf
 zeroscan-mcp
 ```
 
@@ -69,7 +76,7 @@ zeroscan-mcp
 
 Để tránh trôi ngữ cảnh khi trao đổi giữa các LLM, hệ thống quy định 2 chỉ số tiêu chuẩn:
 
-| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế Zero-Scan V2.1 |
+| Chỉ số | Định nghĩa | Ngưỡng cho phép | Thực tế Zero-Scan V2.1.2 |
 |---|---|---|---|
 | **`BOOTSTRAP_CONTEXT_BYTES`** | Tổng dung lượng `BOOT.md` + `PROJECT_STATE.json` + `NEXT_TASK.md` | $\le$ **10,240 bytes (10 KB)** | **~2,400 bytes (23.5%)** |
 | **`TOTAL_AGENT_SYSTEM_BYTES`** | Toàn bộ dung lượng thư mục `.agent/` (gồm code helper, protocol, ADRs) | Thông tin tham khảo | **~29.4 KB** |
@@ -102,8 +109,8 @@ zeroscan-mcp
 * **Khắc phục:** Áp dụng **Quy trình Nén (Compaction)**: Tổng kết các quyết định cốt lõi vào `PROJECT_STATE.json`, lưu trữ toàn bộ lịch sử chi tiết vào `DECISIONS_ARCHIVE.md`.
 
 ### Bẫy lỗi 3: Xung đột ghi đè đồng thời giữa các Agent (Race Condition)
-* **Hiện tượng:** Nhiều Agent chạy song song cùng lúc ghi vào file trạng thái gây hỏng JSON.
-* **Khắc phục:** Sử dụng cơ chế ghi nguyên tử (Atomic Write via `.tmp.<pid>` + `os.replace` + `fsync`).
+* **Hiện tượng:** Nhiều Agent chạy song song cùng lúc ghi vào file trạng thái gây mất dữ liệu (Lost Update).
+* **Khắc phục:** Sử dụng cơ chế khóa file đa nền tảng kết hợp ghi nguyên tử (`file_lock()` + `.tmp.<pid>` + `os.replace` + `fsync`).
 
 ### Bẫy lỗi 4: Quét toàn bộ Codebase mù quáng (Full-Scan Drift)
 * **Hiện tượng:** Agent tự ý dùng lệnh `grep -r` hoặc `find .` quét qua `node_modules` hoặc `venv`.
@@ -123,4 +130,4 @@ zeroscan-mcp
 
 ### Bẫy lỗi 8: Hỏng file JSON do ngắt tiến trình đột ngột (Corrupted JSON Crash)
 * **Hiện tượng:** File `PROJECT_STATE.json` bị 0 byte hoặc lỗi cú pháp khi cúp điện/ngắt process.
-* **Khắc phục:** Engine V2.1 tự động phục hồi từ bản sao lưu `.bak` gần nhất.
+* **Khắc phục:** Engine V2.1.2 tự động phục hồi từ bản sao lưu `.bak` gần nhất.
