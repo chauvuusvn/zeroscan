@@ -200,14 +200,18 @@ function handlePromptsGet(name, args = {}) {
     throw new Error(`Unknown prompt: ${name}`);
 }
 
-function resolveSafeProjectPath(rawPath) {
+function resolveSafeProjectPath(rawPath, rootBoundary) {
+    const boundary = path.resolve(rootBoundary || process.cwd());
+    if (!rawPath) return boundary;
     try {
-        const resolved = path.resolve(rawPath || '.');
-        if (fs.existsSync(resolved) && fs.statSync(resolved).isDirectory()) {
-            return resolved;
+        const candidate = path.resolve(rawPath);
+        const rel = path.relative(boundary, candidate);
+        // Ensure candidate is inside boundary (no leading .. and not an absolute external path)
+        if (!rel.startsWith('..') && !path.isAbsolute(rel) && fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+            return candidate;
         }
     } catch {}
-    return process.cwd();
+    return boundary;
 }
 
 function handleToolsCall(name, args = {}) {

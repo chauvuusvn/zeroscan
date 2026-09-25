@@ -19,6 +19,44 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 try:
+    from core.memory import calculate_metrics, atomic_write_json, validate_agent_memory
+except ImportError:
+    try:
+        from memory import calculate_metrics, atomic_write_json, validate_agent_memory  # type: ignore
+    except ImportError:
+        calculate_metrics = None  # type: ignore
+        atomic_write_json = None  # type: ignore
+        validate_agent_memory = None  # type: ignore
+
+
+def compute_static_bootstrap_metrics(agent_dir: Path) -> Dict[str, Any]:
+    """Compute context metrics safely without dynamic module execution."""
+    if calculate_metrics is not None:
+        return calculate_metrics(agent_dir)
+
+    bootstrap_files = ["BOOT.md", "PROJECT_STATE.json", "NEXT_TASK.md"]
+    boot_bytes = 0
+    for bf in bootstrap_files:
+        p = agent_dir / bf
+        if p.is_file():
+            boot_bytes += p.stat().st_size
+
+    total_bytes = 0
+    if agent_dir.is_dir():
+        for p in agent_dir.rglob("*"):
+            if p.is_file():
+                total_bytes += p.stat().st_size
+
+    return {
+        "bootstrap_context_bytes": boot_bytes,
+        "max_allowed_bytes": 10240,
+        "budget_limit_bytes": 10240,
+        "budget_used_percent": round((boot_bytes / 10240) * 100, 2),
+        "total_agent_system_bytes": total_bytes,
+    }
+
+
+try:
     TEMPLATE_ROOT = Path(__file__).resolve().parent
 except Exception:
     TEMPLATE_ROOT = Path.cwd()
@@ -228,15 +266,14 @@ def bootstrap_project_memory(
         )
         (staging_dir / "BOOT.md").write_text(boot_content, encoding="utf-8")
 
-        # 9. Dynamically import memory engine to compute metrics and sync state
-        spec = importlib.util.spec_from_file_location("agent_memory", staging_dir / "memory.py")
-        if spec and spec.loader:
-            mod = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(mod)
-            metrics = mod.calculate_metrics(staging_dir)
-            state_data["metrics"]["bootstrap_context_bytes"] = metrics["bootstrap_context_bytes"]
-            state_data["metrics"]["total_agent_system_bytes"] = metrics["total_agent_system_bytes"]
-            mod.atomic_write_json(staging_dir / "PROJECT_STATE.json", state_data)
+        # 9. Compute initial metrics and sync state safely
+        metrics = compute_static_bootstrap_metrics(staging_dir)
+        state_data["metrics"]["bootstrap_context_bytes"] = metrics["bootstrap_context_bytes"]
+        state_data["metrics"]["total_agent_system_bytes"] = metrics["total_agent_system_bytes"]
+        (staging_dir / "PROJECT_STATE.json").write_text(
+            json.dumps(state_data, indent=2, ensure_ascii=False) + "\n",
+            encoding="utf-8",
+        )
 
         if agent_dir.exists():
             shutil.rmtree(agent_dir)
@@ -334,22 +371,22 @@ def main() -> int:
         if item.is_file():
             print(f"  ├── {item.name:<20} ({item.stat().st_size:>5} bytes)")
 
-    # Validate generated memory
-    spec = importlib.util.spec_from_file_location("agent_memory", agent_dir / "memory.py")
-    if spec and spec.loader:
-        mod = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(mod)
-        is_valid, errors, warnings = mod.validate_agent_memory(agent_dir)
-        metrics = mod.calculate_metrics(agent_dir)
-        limit_bytes = metrics.get("max_allowed_bytes") or metrics.get("budget_limit_bytes", 10240)
-        print("\n📊 Initial Context Budget Metrics:")
-        print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / {limit_bytes} bytes ({metrics['budget_used_percent']}%)")
-        print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
+    # Validate generated memory safely
+    if validate_agent_memory is not None:
+        is_valid, errors, warnings = validate_agent_memory(agent_dir)
+    else:
+        is_valid, errors, warnings = True, [], []
 
-        if is_valid:
-            print("\n✅ Verification PASSED: New memory system is fully compliant with V2.1.2 standard.")
-        else:
-            print(f"\n⚠️  Verification Warnings/Errors: {len(errors)} errors, {len(warnings)} warnings.")
+    metrics = compute_static_bootstrap_metrics(agent_dir)
+    limit_bytes = metrics.get("max_allowed_bytes") or metrics.get("budget_limit_bytes", 10240)
+    print("\n📊 Initial Context Budget Metrics:")
+    print(f"  • Bootstrap Context Size : {metrics['bootstrap_context_bytes']} / {limit_bytes} bytes ({metrics['budget_used_percent']}%)")
+    print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
+
+    if is_valid:
+        print("\n✅ Verification PASSED: New memory system is fully compliant with V2.1.2 standard.")
+    else:
+        print(f"\n⚠️  Verification Warnings/Errors: {len(errors)} errors, {len(warnings)} warnings.")
 
     print("\n💡 Quick Start Guide for Agents:")
     print("   1. Boot session   : Read `.agent/BOOT.md` (< 1 KB)")

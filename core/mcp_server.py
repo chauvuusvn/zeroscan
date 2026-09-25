@@ -197,12 +197,20 @@ def handle_prompts_get(name: str, arguments: Optional[Dict[str, Any]] = None) ->
     raise ValueError(f"Unknown prompt: {name}")
 
 
-def resolve_safe_project_path(raw_path: Optional[str]) -> Path:
-    """Resolve and sanitize project path, preventing non-existent traversal."""
-    p = Path(raw_path or ".").resolve()
-    if not p.is_dir():
-        return Path.cwd().resolve()
-    return p
+def resolve_safe_project_path(raw_path: Optional[str], root_boundary: Optional[Path] = None) -> Path:
+    """Resolve and sandbox project path, preventing path traversal outside the project root."""
+    boundary = (root_boundary or Path.cwd()).resolve()
+    if not raw_path:
+        return boundary
+    try:
+        candidate = Path(raw_path).resolve()
+        # Ensure candidate is boundary itself or a descendant of boundary
+        if candidate == boundary or boundary in candidate.parents:
+            if candidate.is_dir():
+                return candidate
+    except Exception:
+        pass
+    return boundary
 
 
 def handle_tools_call(name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
