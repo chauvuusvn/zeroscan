@@ -22,16 +22,24 @@ zeroscan-bootstrap --name "du-an-cua-ban" --mission "Xây dựng hệ sinh thái
 
 ---
 
-## 🌟 Tổng quan
+## 🌟 Tổng Quan & Bản Chất Kỹ Thuật Thực Tế
 
-**Zero-Scan Project Memory V2.1.3** là chuẩn mở được thiết kế nhằm xóa bỏ tình trạng phình ngữ cảnh (context bloat), ảo tưởng tiến độ (hallucination) và chi phí quét cây thư mục lặp đi lặp lại trong quy trình phát triển phần mềm bằng AI.
+**Zero-Scan (`.agent/`)** là một quy chuẩn quản trị trạng thái dự án trên hệ thống tệp Git, được thiết kế nhằm giải quyết **chi phí token khởi động phiên** và **hiện tượng AI quên quyết định cũ** trong quy trình lập trình bằng AI.
 
-Các coding agent truyền thống thường lãng phí hàng chục ngàn token để quét toàn bộ codebase mỗi khi bắt đầu phiên làm việc. Project Memory thay thế việc quét bừa bãi bằng một **File neo khởi động Cấp 0** (`BOOT.md` < 1 KB) và một **Bản đồ kiến trúc GPS** (`PROJECT_MAP.json`), đảm bảo agent khởi động tức thì với tổng ngữ cảnh `<= 10 KB`.
+### Zero-Scan Thực Sự Giải Quyết Được Gì:
+1. **Tiết Kiệm Token Khởi Động Phiên (Bootstrap Tokens):** Thay vì để AI (Claude Code, Cursor, Aider, Hermes) chạy lệnh quét mù quáng 50–100 file mỗi khi mở phiên chat mới (đốt mất 30.000–80.000 tokens mỗi lần), AI chỉ cần đọc 1 file `BOOT.md` (~500 bytes / ~150 tokens) để nắm ngay task đang làm, ràng buộc kỹ thuật và phạm vi kiểm thử.
+2. **Không Còn Độ Trễ Khởi Động:** Bỏ qua toàn bộ bước quét cây thư mục; AI sẵn sàng làm việc ngay sau < 1 giây.
+3. **Chống Quên Quyết Định Cũ & Tránh Vỡ Code (Regressions):** Lưu toàn bộ quyết định kiến trúc bất biến ra file `DECISIONS.md` trên đĩa cứng, đảm bảo AI không tự ý phá vỡ các quy tắc đã chốt khi ngữ cảnh chat dài bị nén.
+4. **Hỗ Trợ Chuyển Đổi Model Linh Hoạt:** Cho phép dùng model đắt tiền (Claude) để lên kiến trúc ban đầu, sau đó chuyển sang model giá rẻ (GPT-4o, DeepSeek-V3, Gemini Flash) viết code tiếp mà không bị mất dấu nhiệm vụ.
+
+### Những Gì Zero-Scan KHÔNG Làm (Sự Thật Kỹ Thuật):
+* Zero-Scan **không thể và không nén toàn bộ mã nguồn** vào 10 KB. Khi AI bắt tay vào viết code hoặc debug module thực tế, nó vẫn phải đọc/ghi các file mã nguồn thật và tiêu thụ token như bình thường.
+* Quy chuẩn phụ thuộc vào **tính kỷ luật**: Lập trình viên hoặc AI phải chạy lệnh ghi nhận tiến độ (`zeroscan checkpoint`) để đồng bộ trạng thái trên đĩa với thay đổi code thực tế.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    MỌI LLM / AI CODING AGENT                │
-│  (Claude 3.5 · GPT-4o · Gemini 1.5 · DeepSeek · Qwen · Llama)│
+│  (Claude · GPT-4o · Gemini · DeepSeek · Qwen · Llama)       │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                ┌───────────────┴───────────────┐
@@ -54,40 +62,38 @@ Các coding agent truyền thống thường lãng phí hàng chục ngàn token
 
 ---
 
-## 💡 Vì sao hệ thống tiết kiệm 90–95% Token?
+## 💡 Lợi Ích Thực Tế & Cơ Chế Hoạt Động
 
-### 1. Khởi động Zero-Scan (Level 0 Boot Anchor)
-Các agent thông thường đọc toàn bộ kho mã nguồn trong mỗi lượt hội thoại, dễ dàng đốt 30.000–200.000+ token trước khi viết dòng code đầu tiên. Với Project Memory, agent **chỉ đọc duy nhất `BOOT.md` (~1 KB / ~500 tokens)**, ngay lập tức nắm vững kiến trúc cốt lõi và nhiệm vụ cần làm mà không cần đọc các thư mục không liên quan.
+### 1. Khởi Động Nhanh (`BOOT.md` < 1 KB)
+Thay vì đọc toàn bộ kho mã nguồn mỗi khi bắt đầu phiên, AI chỉ đọc `BOOT.md` (~150 tokens) để nắm bắt tiến độ, bỏ qua các bước quét thư mục tốn kém ban đầu.
 
-### 2. Định vị GPS qua `PROJECT_MAP.json`
-Thay vì tìm kiếm regex tốn kém trên toàn bộ cây thư mục, agent tra cứu `PROJECT_MAP.json` để lấy đường dẫn chính xác của file mã nguồn và test case thuộc domain đang xử lý.
+### 2. Định Vị GPS Qua `PROJECT_MAP.json`
+Thay vì tìm kiếm regex toàn bộ cây thư mục, AI tra cứu `PROJECT_MAP.json` để mở thẳng các file và test case thuộc domain đang xử lý.
 
-### 3. Khóa cứng quyết định kiến trúc (ADR Locking)
-Mọi quyết định kiến trúc quan trọng được lưu trong `DECISIONS.md` ở trạng thái `[LOCKED]`. Agent không bao giờ tự ý đập đi xây lại các quyết định đã được Sếp phê duyệt.
+### 3. Khóa Cứng Quyết Định Kiến Trúc (`DECISIONS.md`)
+Mọi quyết định kiến trúc và bảo mật quan trọng được lưu vĩnh viễn trong `DECISIONS.md`. AI không thể tự ý thay đổi hoặc quên các quyết định đã được duyệt khi chat dài.
 
-### 4. Cổng bằng chứng bất biến (Immutable Evidence Gate)
-Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực tế và được gắn hash với Git Commit thật (`code_commit` và `memory_commit`).
+### 4. Cổng Bằng Chứng Bất Biến & Gắn Mã Git SHA
+Một task chỉ được coi là `DONE` khi vượt qua kiểm thử thực tế (`pytest`, `unittest`) và được gắn hash với Git Commit thật.
 
 ---
 
-## 🧠 Vì Sao Zero-Scan Vĩnh Viễn Không Quên Ngữ Cảnh & Không Bị Phình To?
+## 🧠 Cơ Chế Quản Lý Vòng Đời Trạng Thái
 
-### 1. Chuyển Trí Nhớ Ra Ổ Đĩa Cứng (Triệt tiêu hiện tượng "Lạc Giữa Dòng" - Lost-in-the-Middle)
-AI truyền thống bị mất trí nhớ khi chat dài do cửa sổ ngữ cảnh ($50\text{k} - 200\text{k}$ tokens) bị cắt xén và pha loãng. Zero-Scan đưa toàn bộ dữ liệu thực tế (Ground Truth) ra hệ thống tệp Git bất biến:
-- **`BOOT.md` (< 1 KB):** Định hướng tức thì trong 1 mili-giây (Mục tiêu cốt lõi, Phase hiện tại, Task đang làm, mã Git SHA).
-- **`PROJECT_MAP.json`:** Định vị GPS chính xác file mã nguồn cần chạm vào.
-- **`DECISIONS.md`:** Khóa cứng toàn bộ quyết định kiến trúc đã chốt `[LOCKED]`.
-- **`TASK_LEDGER.jsonl`:** Sổ cái ghi nhận bất biến các task đã xong và bằng chứng test thật.
+### 1. Dữ Liệu Trên Đĩa vs. Ngữ Cảnh Chat Dễ Biến Động
+Cửa sổ chat của LLM sẽ tự động nén hoặc cắt ngắn khi hội thoại vượt quá 50k–100k tokens. Zero-Scan chuyển toàn bộ dữ liệu trạng thái sang hệ thống tệp Git bất biến:
+- **`BOOT.md` (< 1 KB):** Định hướng tức thì trong 1 mili-giây (Mục tiêu, Phase hiện tại, Task đang làm, Git Commit SHA).
+- **`PROJECT_MAP.json`:** Bản đồ định vị file theo domain.
+- **`DECISIONS.md`:** Danh sách quy tắc kiến trúc bắt buộc `[LOCKED]`.
+- **`TASK_LEDGER.jsonl`:** Sổ cái ghi nhận các task đã xong và bằng chứng test thật.
 
-### 2. Cơ Chế Trao Đổi Chất Tự Động (Giữ vững trần ngân sách $\le 10\text{ KB}$ trọn đời)
-Dù dự án phát triển qua nhiều năm với hàng ngàn task, Zero-Scan luôn duy trì dung lượng khởi động siêu nhẹ:
+### 2. Tự Động Nén Sổ Cái (Chống Phình Dung Lượng Đĩa)
 - Khi `TASK_LEDGER.jsonl` vượt quá **50 tasks**, hệ thống tự động dọn các task cũ vào `.agent/archive/TASK_LEDGER_ARCHIVE.jsonl`, giữ sổ cái chính luôn $< 5\text{ KB}$.
 - `BOOT.md` được render lại từ đầu mỗi lần checkpoint, tuyệt đối không bị tích lũy rác lịch sử.
 
 ### 3. Tiếp Quản Liền Mạch Giữa Đa Mô Hình (Multi-LLM Handoff)
-Do bộ nhớ được chuẩn hóa trên filesystem, các AI khác nhau có thể phối hợp nhịp nhàng mà không mất ngữ cảnh:
-- **Phiên 1 (Claude 3.5 Sonnet):** Xây dựng module $\rightarrow$ chạy test PASS $\rightarrow$ lưu `zeroscan checkpoint`.
-- **Phiên 2 (GPT-4o hoặc DeepSeek-V3):** Đọc `BOOT.md` trong 1 mili-giây và tiếp quản công việc tức thì với độ chính xác 100%.
+- **Phiên 1 (ví dụ Claude):** Xây dựng module $\rightarrow$ chạy test PASS $\rightarrow$ lưu `zeroscan checkpoint`.
+- **Phiên 2 (ví dụ GPT-4o / DeepSeek / Gemini):** Đọc `BOOT.md` trong 1 mili-giây và tiếp quản công việc tức thì với độ chính xác 100%.
 
 ---
 

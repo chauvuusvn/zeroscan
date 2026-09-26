@@ -22,16 +22,24 @@ zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI syst
 
 ---
 
-## 🌟 Overview
+## 🌟 Overview & Realistic Scope
 
-**Zero-Scan Project Memory V2.1.3** is an open standard designed to eliminate context bloat, hallucination, and directory-crawling overhead in AI-driven software development.
+**Zero-Scan (`.agent/`)** is a lightweight, Git-bound project state specification designed to eliminate **session bootstrap overhead** and **decision drift** in AI-assisted coding workflows.
 
-Traditional coding agents waste tens of thousands of tokens scanning entire codebases upon startup. Project Memory replaces scanning with a lightweight, Git-bound **Level 0 Boot Anchor** (`BOOT.md` < 1 KB) and an architectural **GPS Map** (`PROJECT_MAP.json`), ensuring agents boot instantly with `<= 10 KB` of total context.
+### What Zero-Scan Actually Solves:
+1. **Eliminates Bootstrap Token Waste:** Instead of letting AI agents (Claude Code, Cursor, Aider, Hermes) blindly scan 50–100 repository files on every session startup (burning 30,000–80,000 tokens each time), the agent reads a single `BOOT.md` file (~500 bytes / ~150 tokens) to instantly know the active task, constraints, and test boundaries.
+2. **Zero Startup Latency:** Eliminates initial directory crawling; the agent is ready to work in < 1 second.
+3. **Prevents Decision Drift & Regressions:** Externalizes critical architectural invariants and past decisions to `DECISIONS.md` on disk, preventing models from violating approved choices when long conversation contexts auto-compact.
+4. **Enables Model Handoff:** Allows architecting with one model (e.g., Claude) and executing implementation tasks with another (e.g., DeepSeek-V3, GPT-4o, Gemini Flash) without losing track of previous decisions.
+
+### What Zero-Scan Does NOT Do (Engineering Reality):
+* It does **not** compress actual source code into 10 KB. When an agent writes or debugs code, it still reads/writes source files and consumes standard token budgets.
+* It relies on **operational discipline**: The developer or agent must record progress via CLI checkpoints (`zeroscan checkpoint`) to keep on-disk state synchronized with actual code changes.
 
 ```text
 ┌─────────────────────────────────────────────────────────────┐
 │                    ANY LLM / AI AGENT                       │
-│  (Claude 3.5 · GPT-4o · Gemini 1.5 · DeepSeek · Qwen · Llama)│
+│  (Claude · GPT-4o · Gemini · DeepSeek · Qwen · Llama)       │
 └──────────────────────────────┬──────────────────────────────┘
                                │
                ┌───────────────┴───────────────┐
@@ -54,40 +62,38 @@ Traditional coding agents waste tens of thousands of tokens scanning entire code
 
 ---
 
-## 💡 Why Zero-Scan Outperforms Full Scans
+## 💡 Practical Benefits & Engineering Mechanics
 
-### 1. Zero-Scan Startup (Level 0 Boot Anchor)
-Traditional agents ingest entire repositories on every session turn, easily burning 30,000–200,000+ tokens before writing a single line of code. With Zero-Scan, agents **read only `BOOT.md` (~1 KB / ~500 tokens)**, instantly understanding the architecture and current task without touching unrelated files.
+### 1. Zero-Scan Startup (`BOOT.md` < 1 KB)
+Instead of crawling repositories on every session turn, agents read `BOOT.md` (~150 tokens) to understand project state, skipping expensive preliminary discovery scans.
 
-### 2. GPS Navigation via `PROJECT_MAP.json`
-Instead of running expensive recursive regex greps across the repository, agents query `PROJECT_MAP.json` to navigate directly to the source files and test suites of the active domain.
+### 2. Targeted GPS Navigation (`PROJECT_MAP.json`)
+Rather than running recursive regex searches across the repo, agents query `PROJECT_MAP.json` to navigate directly to the specific files belonging to the active domain.
 
-### 3. Architectural Decision Locking (ADR Invariants)
-Critical architectural decisions are recorded in `DECISIONS.md` under `[LOCKED]` status. Agents are strictly prohibited from modifying locked decisions without explicit approval.
+### 3. Architectural Invariant Locking (`DECISIONS.md`)
+Architectural and security decisions are permanently logged in `DECISIONS.md`. Models cannot silently overwrite or forget past choices during long sessions.
 
 ### 4. Immutable Evidence Gate & Git SHA Binding
-A task is considered `DONE` only when validated with real test execution evidence (`pytest`, `unittest`) and bound to a verifiable Git Commit SHA.
+Tasks are marked `DONE` only when validated with real test execution output (`pytest`, `unittest`) and bound to a verifiable Git Commit SHA.
 
 ---
 
-## 🧠 Why Zero-Scan Never Forgets & Never Bloats (Zero-Amnesia Engine)
+## 🧠 Memory Externalization & Lifecycle Management
 
-### 1. Externalized Ground Truth on Disk (Eliminating "Lost-in-the-Middle")
-Traditional LLM agents suffer from memory loss when conversation windows exceed 50k–200k tokens due to context truncation and attention dilution (*Lost-in-the-Middle*). Zero-Scan externalizes ground truth directly into the Git filesystem:
+### 1. Ground Truth on Disk (Mitigating Context Compaction)
+Conversational context windows naturally compact or degrade over long sessions. Zero-Scan anchors project memory directly in deterministic Git files:
 - **`BOOT.md` (< 1 KB):** Instant operational awareness (Project goal, active phase, current task, verified commit SHA).
 - **`PROJECT_MAP.json`:** Precise GPS file routing for active domains.
 - **`DECISIONS.md`:** Non-negotiable architectural rules marked `[LOCKED]`.
-- **`TASK_LEDGER.jsonl`:** Immutable append-only record of completed work.
+- **`TASK_LEDGER.jsonl`:** Append-only record of completed work.
 
-### 2. Auto-Pruning Metabolism (Hard Budget Ceiling $\le 10\text{ KB}$)
-As projects evolve over months with hundreds of tasks, Zero-Scan maintains constant sub-10 KB performance through automated compaction:
+### 2. Auto-Pruning Ledger (Preventing Disk Bloat)
 - When `TASK_LEDGER.jsonl` exceeds 50 tasks, older entries are automatically archived to `.agent/archive/TASK_LEDGER_ARCHIVE.jsonl`, keeping the active ledger small ($< 5\text{ KB}$).
 - `BOOT.md` is re-rendered atomically from scratch on each checkpoint, never accumulating historical bloat.
 
-### 3. Universal Multi-LLM Handoff
-Because memory is grounded in deterministic files, different AI models can seamlessly collaborate without context loss:
-- **Session 1 (Claude 3.5 Sonnet):** Implements auth module $\rightarrow$ runs tests $\rightarrow$ executes `zeroscan checkpoint`.
-- **Session 2 (GPT-4o or DeepSeek-V3):** Boots from `.agent/BOOT.md` in $< 1\text{ ms}$ and resumes immediately with 100% architectural fidelity.
+### 3. Multi-Model Handoff
+- **Session 1 (e.g., Claude):** Implements module $\rightarrow$ verifies tests $\rightarrow$ runs `zeroscan checkpoint`.
+- **Session 2 (e.g., GPT-4o / DeepSeek):** Reads `BOOT.md` in < 1 ms and resumes immediately with full context clarity.
 
 ---
 
