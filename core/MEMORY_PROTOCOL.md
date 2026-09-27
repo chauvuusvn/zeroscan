@@ -15,9 +15,10 @@ This document outlines the **10 Golden Rules of Agent Memory** for all AI coding
 - Every state checkpoint in `.agent/PROJECT_STATE.json` must be bound to a real, verifiable Git commit hash (`verified_commit`).
 - If the current git `HEAD` does not match `verified_commit`, the agent must inspect git diff/log to reconcile drift before proceeding.
 
-### Rule 3: GPS Routing via Map
+### Rule 3: GPS Routing via Map & JIT RAG Retrieval
 - Consult `.agent/PROJECT_MAP.json` as the architectural GPS.
 - Identify the functional domain and load only the specific files, schemas, and test suites indicated in the map.
+- For deep historical queries or specific factual verification, execute the Level-2 JIT RAG Engine (`obsidian_rag_bridge.py`) to retrieve exact 1-2 chunks (<1 KB) instead of full-disk scanning.
 - Update `PROJECT_MAP.json` whenever new modules, entry points, or test suites are created.
 
 ### Rule 4: Immutable Locked Decisions (ADRs)

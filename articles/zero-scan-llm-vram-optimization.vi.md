@@ -81,6 +81,11 @@ Mỗi dự án được chuẩn hóa bằng một thư mục `.agent/` duy nhấ
 
 Khi một Agent bắt đầu phiên làm việc mới (Resume), nó **chỉ đọc 5 file này với tổng dung lượng < 5 KB**. Toàn bộ ngữ cảnh của dự án được khôi phục 100% chính xác mà không cần quét bất kỳ một file mã nguồn thô nào!
 
+### ⚡ Nâng Cấp Chuẩn V2.2: Cơ Chế Truy Xuất Động Just-In-Time (JIT RAG)
+Khi một Agent cần tra cứu sâu một tham số kỹ thuật, công thức hay tình tiết lịch sử cụ thể:
+- **Tuyệt đối cấm:** Dùng lệnh `find` / `grep` quét mù quáng cả ổ đĩa hoặc đọc toàn văn file lớn.
+- **Bắt buộc:** Gọi động cơ **Level-2 JIT RAG** (`obsidian-rag-search`, độ trễ ~17ms) để bốc đúng 1-2 chunks liên quan nhất (< 1 KB context) đưa vào RAM tạm thời, sau đó chốt kết quả vào `DECISIONS.md`.
+
 ---
 
 ## 📊 4. Bảng Dữ Liệu So Sánh Thực Nghiệm (Benchmark)

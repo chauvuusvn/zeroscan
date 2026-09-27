@@ -1,1 +1,2 @@
-"""Project Memory V2.1 Core Package."""
+"""Project Memory V2.2 Core Package."""
+__version__ = "2.2.0"
