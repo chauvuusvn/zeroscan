@@ -1,7 +1,7 @@
-# ZeroScan (`.agent/`) — Project Memory V2.1.3
+# ZeroScan (`.agent/`) — Project Memory V2.2.0
 
 [![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
-[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.3-blue.svg)](https://pypi.org/project/zeroscan/)
+[![PyPI - Version](https://img.shields.io/badge/pypi-v2.2.0-blue.svg)](https://pypi.org/project/zeroscan/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ff69b4.svg)](https://github.com/sponsors/chauvuusvn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -97,7 +97,7 @@ Conversational context windows naturally compact or degrade over long sessions. 
 
 ---
 
-## 🛡️ V2.1.3 Enterprise-Grade Engineering Highlights
+## 🛡️ V2.2.0 Enterprise-Grade Engineering Highlights
 
 1. **⚡ Atomic State-to-Boot Auto-Sync:** Updating `PROJECT_STATE.json` automatically re-renders `BOOT.md` in real-time, preventing state drift.
 2. **🔄 Resilient JSON Loader & `.bak` Fallback:** Automatic recovery from backup snapshots when state files are empty or corrupted.
@@ -105,6 +105,7 @@ Conversational context windows naturally compact or degrade over long sessions. 
 4. **🛡️ Atomic Bootstrap Staging & Rollback:** Scaffolding takes place in a temporary staging directory first, ensuring zero data loss if network or generation fails.
 5. **📦 Package Data Bundling:** Templates and schemas are packaged directly into the PyPI wheel for 100% offline usage.
 6. **📦 Sized Ledger Archiving:** Automatically archives completed tasks to `.agent/archive/` when ledger exceeds 50 entries, keeping the active context $< 5\text{ KB}$.
+7. **🔍 Level-2 JIT RAG Engine:** Integrated Just-In-Time retrieval (~17ms latency) for deep historical specs and context retrieval without disk scanning.
 
 ---
 

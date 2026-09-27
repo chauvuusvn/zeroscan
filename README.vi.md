@@ -1,7 +1,7 @@
-# ZeroScan (`.agent/`) — Project Memory V2.1.3
+# ZeroScan (`.agent/`) — Project Memory V2.2.0
 
 [![CI Suite](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml/badge.svg)](https://github.com/chauvuusvn/zeroscan/actions/workflows/ci.yml)
-[![PyPI - Version](https://img.shields.io/badge/pypi-v2.1.3-blue.svg)](https://pypi.org/project/zeroscan/)
+[![PyPI - Version](https://img.shields.io/badge/pypi-v2.2.0-blue.svg)](https://pypi.org/project/zeroscan/)
 [![GitHub Sponsors](https://img.shields.io/badge/Sponsor-GitHub%20Sponsors-ff69b4.svg)](https://github.com/sponsors/chauvuusvn)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](https://opensource.org/licenses/MIT)
 [![Python: 3.9+](https://img.shields.io/badge/Python-3.9%2B-blue.svg)](https://www.python.org/)
@@ -97,7 +97,7 @@ Cửa sổ chat của LLM sẽ tự động nén hoặc cắt ngắn khi hội t
 
 ---
 
-## 🛡️ Điểm Mới Trong Phiên Bản V2.1.3 (Enterprise Ready)
+## 🛡️ Điểm Mới Trong Phiên Bản V2.2.0 (Enterprise Ready)
 
 1. **⚡ Tự Động Đồng Bộ Cấp Nguyên Tử (Atomic State-to-Boot Auto-Sync):** Sửa `PROJECT_STATE.json` là `BOOT.md` tự cập nhật theo thời gian thực, triệt tiêu nguy cơ trôi ngữ cảnh.
 2. **🔄 Phục Hồi File JSON Hỏng (Resilient JSON Loader & `.bak` Fallback):** Tự động khôi phục từ bản backup `.bak` nếu file JSON bị đứt gãy giữa chừng (Zero-Crash Guarantee).
@@ -105,6 +105,7 @@ Cửa sổ chat của LLM sẽ tự động nén hoặc cắt ngắn khi hội t
 4. **🛡️ Khởi Tạo An Toàn Với Cơ Chế Rollback Nguyên Tử (Atomic Bootstrap Staging):** Dựng khung trong thư mục tạm trước, chỉ tráo đổi khi 100% file đã hoàn tất.
 5. **📦 Đóng Gói Dữ Liệu Offline (Package Data Bundling):** Toàn bộ template được đóng gói sẵn trong wheel của PyPI, chạy offline 100% không cần internet.
 6. **📦 Tự Động Lưu Trữ Sổ Ghi Tác Vụ (Ledger Auto-Pruning):** Tự động chuyển các tác vụ cũ sang `.agent/archive/` khi vượt quá 50 tasks, bảo vệ vĩnh viễn ngân sách $\le 10\text{ KB}$.
+7. **🔍 Động Cơ Truy Xuất Động JIT RAG (Level-2 Just-In-Time RAG Engine):** Tích hợp truy xuất ngữ cảnh sâu siêu tốc (~17ms) khi cần tra cứu chi tiết lịch sử/kỹ thuật, xóa bỏ hoàn toàn thao tác quét đĩa thô lãng phí token.
 
 ---
 

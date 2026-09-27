@@ -1,12 +1,12 @@
 # LEVEL 0 BOOT ANCHOR: ZEROSCAN
-> **Spec Version:** 2.1.2 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
+> **Spec Version:** 2.1.3 | **Zero-Scan Hard Budget:** <= 10 KB | **Auto-Synced**
 
 - **Project:** zeroscan
 - **Mission:** The Zero-Scan, Git-Aware Context Engine for AI Coding Agents
 - **Phase:** Phase 2 - Engine Maturation
 - **Active Task:** Automated CI/CD validation tests
-- **Verified Commit:** `7516a015`
-- **Last Synchronized:** `2026-09-25T04:29:48.433832+00:00`
+- **Verified Commit:** `c375089c`
+- **Last Synchronized:** `2026-09-27T01:28:10.855915+00:00`
 
 ## MANDATORY AGENT BOOT PROTOCOL
 1. Do NOT scan the entire repository tree.

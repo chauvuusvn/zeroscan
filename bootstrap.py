@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Project Memory V2.1.3 Bootstrapper (bootstrap.py)
+Project Memory V2.2.0 Bootstrapper (bootstrap.py)
 Automated scaffold engine to initialize .agent/ structure in any repository.
 Pure Python 3.9+ standard library implementation (zero external dependencies).
 """
@@ -73,7 +73,7 @@ def get_template_bytes(rel_path: str) -> bytes:
     url = f"{RAW_GITHUB_BASE}/{rel_path}"
     print(f"ℹ️  [INFO] Fetching template '{rel_path}' from official GitHub repository...")
     try:
-        req = urllib.request.Request(url, headers={"User-Agent": "ZeroScan-Bootstrapper/2.1.3"})
+        req = urllib.request.Request(url, headers={"User-Agent": "ZeroScan-Bootstrapper/2.2.0"})
         with urllib.request.urlopen(req, timeout=10) as resp:
             return resp.read()
     except Exception as e:
@@ -112,7 +112,7 @@ def get_git_commit(path: Path) -> str:
 def build_project_map(name: str, domains: List[str], project_root: Path) -> Dict[str, Any]:
     """Generate structured GPS PROJECT_MAP.json based on project domains."""
     project_map: Dict[str, Any] = {
-        "version": "2.1.3",
+        "version": "2.2.0",
         "project_name": name,
         "domains": {},
         "infrastructure": {
@@ -228,7 +228,7 @@ def bootstrap_project_memory(
 
         # 7. Create PROJECT_STATE.json
         state_data = {
-            "version": "2.1.3",
+            "version": "2.2.0",
             "project_name": name,
             "mission": mission,
             "current_phase": phase,
@@ -290,7 +290,7 @@ def bootstrap_project_memory(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Project Memory V2.1.3 Bootstrapper — Scaffold .agent/ for any repository",
+        description="Project Memory V2.2.0 Bootstrapper — Scaffold .agent/ for any repository",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
     parser.add_argument(
@@ -345,7 +345,7 @@ def main() -> int:
     domain_list = [d.strip() for d in args.domains.split(",") if d.strip()]
 
     print("=" * 65)
-    print(f"🚀 Initializing Project Memory V2.1.3 for: {project_name}")
+    print(f"🚀 Initializing Project Memory V2.2.0 for: {project_name}")
     print(f"📍 Target directory : {target_path}")
     print(f"🏷️  Domains          : {', '.join(domain_list)}")
     print("=" * 65)
@@ -385,7 +385,7 @@ def main() -> int:
     print(f"  • Total .agent/ Size     : {metrics['total_agent_system_bytes']} bytes")
 
     if is_valid:
-        print("\n✅ Verification PASSED: New memory system is fully compliant with V2.1.3 standard.")
+        print("\n✅ Verification PASSED: New memory system is fully compliant with V2.2.0 standard.")
     else:
         print(f"\n⚠️  Verification Warnings/Errors: {len(errors)} errors, {len(warnings)} warnings.")
 
