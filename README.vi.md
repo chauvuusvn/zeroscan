@@ -15,7 +15,7 @@ pip install zeroscan
 zeroscan-bootstrap --name "du-an-cua-ban" --mission "Xây dựng hệ sinh thái AI"
 ```
 
-[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Bài Viết Chuyên Sâu ](articles/zero-scan-llm-vram-optimization.vi.md)
+[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ ⚡ Tối Ưu Local LLM & VRAM ](docs/HUONG_DAN_LOCAL_LLM.vi.md) | [ 🚀 Bài Viết Chuyên Sâu ](articles/zero-scan-llm-vram-optimization.vi.md)
 
 > **Giao Thức Quản Trị Ngữ Cảnh Độc Lập Cho Mọi AI Coding Agent & LLM**  
 > Tương thích toàn diện với Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, và Hermes.

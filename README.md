@@ -15,7 +15,7 @@ pip install zeroscan
 zeroscan-bootstrap --name "my-awesome-project" --mission "Build scalable AI systems"
 ```
 
-[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ 🚀 Deep-Dive Article ](articles/zero-scan-llm-vram-optimization.md)
+[ 🇬🇧 English ](README.md) | [ 🇻🇳 Tiếng Việt ](README.vi.md) | [ 📘 Usage Guide ](USAGE_GUIDE.md) | [ 📕 Hướng dẫn sử dụng ](HUONG_DAN_SU_DUNG.md) | [ ⚡ Local LLM VRAM Guide ](docs/LOCAL_LLM_GUIDE.md) | [ 🚀 Deep-Dive Article ](articles/zero-scan-llm-vram-optimization.md)
 
 > **The Universal, Model-Agnostic Context & Memory Protocol for ANY AI Coding Agent**  
 > Native support for Claude 3.5, GPT-4o, Gemini 1.5, DeepSeek-V3, Qwen 2.5, Llama 3.3, Cursor, Windsurf, Trae, Codex, and Hermes.
