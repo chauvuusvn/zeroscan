@@ -166,21 +166,22 @@ def atomic_write_json(path: Path, data: Dict[str, Any], auto_sync_boot: bool = T
 
 
 def sync_boot_anchor(agent_dir: Path) -> None:
-    """Render and write BOOT.md from current PROJECT_STATE.json to guarantee 0% state drift."""
+    """Render and write BOOT.md from current PROJECT_STATE.json with atomic replace and file lock."""
     state_file = agent_dir / "PROJECT_STATE.json"
     boot_file = agent_dir / "BOOT.md"
     if not state_file.is_file():
         return
 
     try:
-        state = load_json(state_file)
-        content = generate_boot_markdown(state)
-        temp_boot = boot_file.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
-        with open(temp_boot, "w", encoding="utf-8") as f:
-            f.write(content)
-            f.flush()
-            os.fsync(f.fileno())
-        temp_boot.replace(boot_file)
+        with file_lock(boot_file):
+            state = load_json(state_file)
+            content = generate_boot_markdown(state)
+            temp_boot = boot_file.with_suffix(f".tmp.{os.getpid()}.{time.time_ns()}")
+            with open(temp_boot, "w", encoding="utf-8") as f:
+                f.write(content)
+                f.flush()
+                os.fsync(f.fileno())
+            temp_boot.replace(boot_file)
     except Exception:
         pass
 
@@ -414,6 +415,47 @@ def update_next_task_doc(
     temp_task.replace(task_file)
 
 
+def validate_pure_python_schema(data: Any, schema: Dict[str, Any], path: str = "$") -> List[str]:
+    """Lightweight pure-Python recursive JSON schema validator (zero external dependencies)."""
+    errs: List[str] = []
+    expected_type = schema.get("type")
+    if expected_type:
+        type_map = {
+            "object": dict,
+            "array": list,
+            "string": str,
+            "integer": int,
+            "number": (int, float),
+            "boolean": bool,
+            "null": type(None),
+        }
+        allowed = [expected_type] if isinstance(expected_type, str) else list(expected_type)
+        is_valid = any(isinstance(data, type_map[t]) for t in allowed if t in type_map)
+        if not is_valid:
+            errs.append(f"{path}: expected type '{expected_type}', got '{type(data).__name__}'")
+            return errs
+
+    if isinstance(data, dict):
+        for req in schema.get("required", []):
+            if req not in data:
+                errs.append(f"{path}: missing required property '{req}'")
+        props = schema.get("properties", {})
+        for k, v in data.items():
+            if k in props:
+                errs.extend(validate_pure_python_schema(v, props[k], f"{path}.{k}"))
+
+    elif isinstance(data, list):
+        item_schema = schema.get("items")
+        if item_schema and isinstance(item_schema, dict):
+            for idx, item in enumerate(data):
+                errs.extend(validate_pure_python_schema(item, item_schema, f"{path}[{idx}]"))
+
+    if "enum" in schema and data not in schema["enum"]:
+        errs.append(f"{path}: value '{data}' not in allowed enum {schema['enum'][:5]}")
+
+    return errs
+
+
 def validate_agent_memory(agent_dir: Path, strict_git: bool = False) -> Tuple[bool, List[str], List[str]]:
     """Strict specification validator for .agent memory compliance and budget."""
     errors = []
@@ -439,7 +481,7 @@ def validate_agent_memory(agent_dir: Path, strict_git: bool = False) -> Tuple[bo
             f"Bootstrap context exceeded budget ceiling: {metrics['bootstrap_context_bytes']} > {MAX_BOOTSTRAP_CONTEXT_BYTES} bytes"
         )
 
-    # Validate PROJECT_STATE.json schema
+    # Validate PROJECT_STATE.json schema deeply
     state_file = agent_dir / "PROJECT_STATE.json"
     if state_file.is_file():
         try:
@@ -449,8 +491,38 @@ def validate_agent_memory(agent_dir: Path, strict_git: bool = False) -> Tuple[bo
                     errors.append(f"PROJECT_STATE.json missing required field: {k}")
             if "phase" not in state and "current_phase" not in state:
                 errors.append("PROJECT_STATE.json missing required field: current_phase or phase")
+            
+            # Deep schema validation against schema/project_state.schema.json if available
+            schema_path = agent_dir.parent / "schema" / "project_state.schema.json"
+            if not schema_path.is_file():
+                schema_path = Path(__file__).resolve().parent.parent / "schema" / "project_state.schema.json"
+            if schema_path.is_file():
+                try:
+                    s_def = load_json(schema_path)
+                    s_errs = validate_pure_python_schema(state, s_def, "PROJECT_STATE")
+                    errors.extend(s_errs)
+                except Exception:
+                    pass
         except Exception as e:
             errors.append(f"PROJECT_STATE.json is invalid JSON: {e}")
+
+    # Validate PROJECT_MAP.json schema deeply
+    map_file = agent_dir / "PROJECT_MAP.json"
+    if map_file.is_file():
+        try:
+            pmap = load_json(map_file)
+            map_schema_path = agent_dir.parent / "schema" / "project_map.schema.json"
+            if not map_schema_path.is_file():
+                map_schema_path = Path(__file__).resolve().parent.parent / "schema" / "project_map.schema.json"
+            if map_schema_path.is_file():
+                try:
+                    m_def = load_json(map_schema_path)
+                    m_errs = validate_pure_python_schema(pmap, m_def, "PROJECT_MAP")
+                    errors.extend(m_errs)
+                except Exception:
+                    pass
+        except Exception as e:
+            errors.append(f"PROJECT_MAP.json is invalid JSON: {e}")
 
     # Check Git synchronization
     git_info = get_git_status_summary(agent_dir.parent)
@@ -627,9 +699,51 @@ def cmd_add_decision(args: argparse.Namespace) -> int:
     return 0
 
 
+def install_git_hooks(repo_root: Path) -> Tuple[bool, str]:
+    """Install lightweight post-commit git hook to auto-sync Zero-Scan state."""
+    git_dir = repo_root / ".git"
+    if not git_dir.is_dir():
+        return False, f"Directory '{repo_root}' is not a Git repository (.git not found)."
+
+    hooks_dir = git_dir / "hooks"
+    hooks_dir.mkdir(parents=True, exist_ok=True)
+    post_commit = hooks_dir / "post-commit"
+
+    hook_script = """#!/usr/bin/env sh
+# Zero-Scan Git Post-Commit Auto-Sync Hook (v2.2.1)
+# Auto-syncs BOOT.md and verified_commit on every git commit.
+
+if command -v zeroscan >/dev/null 2>&1; then
+    zeroscan sync --target "$PWD" >/dev/null 2>&1 || true
+fi
+"""
+    post_commit.write_text(hook_script, encoding="utf-8")
+    try:
+        mode = post_commit.stat().st_mode
+        post_commit.chmod(mode | 0o111)  # make executable
+    except Exception:
+        pass
+    return True, f"Successfully installed Zero-Scan post-commit hook at {post_commit}"
+
+
+def cmd_install_hooks(args: argparse.Namespace) -> int:
+    """Install git hooks for automated background memory sync."""
+    target_dir = Path(args.target) if getattr(args, "target", None) else Path.cwd()
+    success, msg = install_git_hooks(target_dir.resolve())
+    if success:
+        print(f"  ✅ [HOOKS INSTALLED] {msg}")
+        return 0
+    else:
+        print(f"  ❌ [ERROR] {msg}")
+        return 1
+
+
 def main() -> int:
     parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.2.1 CLI Engine")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    p_hooks = subparsers.add_parser("install-hooks", help="Install automated git post-commit auto-sync hook")
+    p_hooks.add_argument("--target", "-t", type=str, help="Target repository root directory")
 
     p_status = subparsers.add_parser("status", help="Show project memory status and metrics")
     p_status.add_argument("--target", "-t", type=str, help="Target project root directory")
@@ -679,6 +793,8 @@ def main() -> int:
         return cmd_sync(args)
     elif args.command == "checkpoint":
         return cmd_checkpoint(args)
+    elif args.command == "install-hooks":
+        return cmd_install_hooks(args)
     elif args.command == "add-decision":
         return cmd_add_decision(args)
     else:

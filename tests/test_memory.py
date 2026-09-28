@@ -163,6 +163,35 @@ class TestProjectMemoryEngine(unittest.TestCase):
         decisions = (self.agent_dir / "DECISIONS.md").read_text(encoding="utf-8")
         self.assertIn("ADR-CLI-099", decisions)
 
+    def test_install_git_hooks(self):
+        """Verify git post-commit auto-sync hook installation."""
+        ok, msg = memory.install_git_hooks(self.repo_root)
+        self.assertTrue(ok)
+        hook_path = self.repo_root / ".git" / "hooks" / "post-commit"
+        self.assertTrue(hook_path.is_file())
+        content = hook_path.read_text(encoding="utf-8")
+        self.assertIn("zeroscan sync", content)
+
+    def test_pure_python_schema_validator(self):
+        """Verify lightweight recursive pure-Python JSON schema validator."""
+        test_schema = {
+            "type": "object",
+            "required": ["name", "version", "tags"],
+            "properties": {
+                "name": {"type": "string"},
+                "version": {"type": "string", "enum": ["1.0", "2.0"]},
+                "tags": {"type": "array", "items": {"type": "string"}}
+            }
+        }
+        valid_data = {"name": "test", "version": "2.0", "tags": ["a", "b"]}
+        errs = memory.validate_pure_python_schema(valid_data, test_schema)
+        self.assertEqual(len(errs), 0)
+
+        invalid_data = {"name": 123, "version": "9.9", "tags": [1, 2]}
+        errs_invalid = memory.validate_pure_python_schema(invalid_data, test_schema)
+        self.assertTrue(len(errs_invalid) >= 3)
+
+
 
 if __name__ == "__main__":
     unittest.main()
