@@ -268,6 +268,15 @@ def calculate_metrics(agent_dir: Path) -> Dict[str, Any]:
                 total_agent_bytes += p.stat().st_size
 
     pct = round((boot_bytes / MAX_BOOTSTRAP_CONTEXT_BYTES) * 100, 2)
+    completed_tasks_count = 0
+    ledger_file = agent_dir / "TASK_LEDGER.jsonl"
+    if ledger_file.is_file():
+        try:
+            with open(ledger_file, "r", encoding="utf-8") as f:
+                completed_tasks_count = sum(1 for line in f if line.strip())
+        except Exception:
+            pass
+
     return {
         "bootstrap_context_bytes": boot_bytes,
         "max_allowed_bytes": MAX_BOOTSTRAP_CONTEXT_BYTES,
@@ -275,6 +284,7 @@ def calculate_metrics(agent_dir: Path) -> Dict[str, Any]:
         "budget_used_percent": pct,
         "is_within_budget": boot_bytes <= MAX_BOOTSTRAP_CONTEXT_BYTES,
         "total_agent_system_bytes": total_agent_bytes,
+        "completed_tasks_count": completed_tasks_count,
         "file_breakdown": file_breakdown,
     }
 
