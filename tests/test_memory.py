@@ -1,4 +1,4 @@
-"""Unit tests for Project Memory V2.0 Core Engine (core/memory.py)."""
+"""Unit tests for Zero-Scan Project Memory V2.2.1 Core Engine (core/memory.py)."""
 
 import argparse
 import subprocess
