@@ -17,6 +17,14 @@ def main():
     parser.add_argument("--test", action="store_true", help="Upload to TestPyPI instead of production")
     args = parser.parse_args()
 
+    # Auto-load .env if present
+    env_file = Path(".env")
+    if env_file.is_file() and not os.environ.get("PYPI_API_TOKEN"):
+        for line in env_file.read_text(encoding="utf-8").splitlines():
+            line = line.strip()
+            if line.startswith("PYPI_API_TOKEN=") and not line.startswith("#"):
+                os.environ["PYPI_API_TOKEN"] = line.split("=", 1)[1].strip(" \"'")
+
     token = args.token or os.environ.get("PYPI_API_TOKEN")
     if not token:
         print("❌ Error: PyPI API Token is required.")

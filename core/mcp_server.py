@@ -39,7 +39,7 @@ except ImportError:
     )
 
 SERVER_NAME = "zeroscan-mcp"
-SERVER_VERSION = "2.2.0"
+SERVER_VERSION = "2.2.1"
 PROTOCOL_VERSION = "2024-11-05"
 
 TOOLS = [
