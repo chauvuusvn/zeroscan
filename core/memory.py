@@ -243,7 +243,10 @@ def get_git_status_summary(repo_root: Path) -> Dict[str, Any]:
 
         s_res = subprocess.run(["git", "status", "--porcelain"], cwd=repo_root, capture_output=True, text=True)
         if s_res.returncode == 0:
-            info["is_dirty"] = bool(s_res.stdout.strip())
+            lines = [line.strip() for line in s_res.stdout.strip().splitlines() if line.strip()]
+            dirty_files = [l for l in lines if not (".agent/BOOT.md" in l or ".agent/PROJECT_STATE.json" in l)]
+            info["is_dirty"] = bool(dirty_files)
+            info["dirty_count"] = len(dirty_files)
     except Exception:
         pass
     return info
