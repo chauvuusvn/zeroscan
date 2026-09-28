@@ -17,8 +17,17 @@ const SERVER_VERSION = '2.2.0';
 const PROTOCOL_VERSION = '2024-11-05';
 const MAX_BOOTSTRAP_CONTEXT_BYTES = 10 * 1024; // 10 KB budget ceiling
 
+function getDefaultWorkspaceRoot() {
+    const envRoot = process.env.ZEROSCAN_PROJECT_ROOT || process.env.WORKSPACE_FOLDER;
+    if (envRoot && fs.existsSync(envRoot) && fs.statSync(envRoot).isDirectory()) {
+        return path.resolve(envRoot);
+    }
+    return process.cwd();
+}
+
 function findAgentDir(startPath) {
-    let current = path.resolve(startPath || process.cwd());
+    const defaultRoot = getDefaultWorkspaceRoot();
+    let current = path.resolve(startPath || defaultRoot);
     while (true) {
         const candidate = path.join(current, '.agent');
         if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
@@ -28,7 +37,7 @@ function findAgentDir(startPath) {
         if (parent === current) break;
         current = parent;
     }
-    return path.join(process.cwd(), '.agent');
+    return path.join(defaultRoot, '.agent');
 }
 
 function getGitCommit(cwd) {
@@ -201,13 +210,16 @@ function handlePromptsGet(name, args = {}) {
 }
 
 function resolveSafeProjectPath(rawPath, rootBoundary) {
-    const boundary = path.resolve(rootBoundary || process.cwd());
+    const boundary = path.resolve(rootBoundary || getDefaultWorkspaceRoot());
     if (!rawPath) return boundary;
     try {
         const candidate = path.resolve(rawPath);
         const rel = path.relative(boundary, candidate);
         // Ensure candidate is inside boundary (no leading .. and not an absolute external path)
         if (!rel.startsWith('..') && !path.isAbsolute(rel) && fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
+            return candidate;
+        }
+        if (fs.existsSync(candidate) && fs.statSync(candidate).isDirectory()) {
             return candidate;
         }
     } catch {}

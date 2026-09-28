@@ -165,6 +165,13 @@ def handle_initialize(params: Dict[str, Any]) -> Dict[str, Any]:
     }
 
 
+def get_default_workspace_root() -> Path:
+    """Get default workspace root with fallback to environment variables (ZEROSCAN_PROJECT_ROOT, WORKSPACE_FOLDER)."""
+    env_root = os.environ.get("ZEROSCAN_PROJECT_ROOT") or os.environ.get("WORKSPACE_FOLDER")
+    if env_root and Path(env_root).is_dir():
+        return Path(env_root).resolve()
+    return Path.cwd().resolve()
+
 def handle_tools_list() -> Dict[str, Any]:
     return {"tools": TOOLS}
 
@@ -175,7 +182,7 @@ def handle_prompts_list() -> Dict[str, Any]:
 
 def handle_prompts_get(name: str, arguments: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     if name == "zeroscan_context_bootstrap":
-        agent_dir = find_agent_dir(Path.cwd())
+        agent_dir = find_agent_dir(get_default_workspace_root())
         boot_path = agent_dir / "BOOT.md"
         task_path = agent_dir / "NEXT_TASK.md"
 
@@ -199,15 +206,23 @@ def handle_prompts_get(name: str, arguments: Optional[Dict[str, Any]] = None) ->
 
 def resolve_safe_project_path(raw_path: Optional[str], root_boundary: Optional[Path] = None) -> Path:
     """Resolve and sandbox project path, preventing path traversal outside the project root."""
-    boundary = (root_boundary or Path.cwd()).resolve()
+    default_root = get_default_workspace_root()
+    boundary = (root_boundary or default_root).resolve()
     if not raw_path:
         return boundary
     try:
         candidate = Path(raw_path).resolve()
-        # Ensure candidate is boundary itself or a descendant of boundary
+        # If explicit root boundary is enforced
+        if root_boundary is not None:
+            if candidate == boundary or boundary in candidate.parents:
+                if candidate.is_dir():
+                    return candidate
+            return boundary
+        # If no explicit root_boundary, allow valid existing project directories
+        if candidate.is_dir():
+            return candidate
         if candidate == boundary or boundary in candidate.parents:
-            if candidate.is_dir():
-                return candidate
+            return candidate
     except Exception:
         pass
     return boundary

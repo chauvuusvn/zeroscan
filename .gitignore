@@ -1,11 +1,33 @@
+# Environments
+.env
+.env.*
+*.env
+
+# Python Bytecode & Cache
 __pycache__/
 *.py[cod]
 *$py.class
-*.tmp.*
-*.bak
 .pytest_cache/
-dist/
+
+# Distribution / Packaging
 build/
+dist/
 *.egg-info/
-.agent_staging_*
+.eggs/
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Locks and Backups
 *.lock
+*.bak
+.agent/*.lock
+.agent/*.bak
+

@@ -30,8 +30,8 @@ SPECIFICATION_VERSION = "2.2.0"
 
 
 @contextlib.contextmanager
-def file_lock(lock_path: Path, timeout: float = 5.0):
-    """Cross-platform atomic file lock supporting POSIX (fcntl) and Windows (O_EXCL atomic spinlock)."""
+def file_lock(lock_path: Path, timeout: float = 5.0, stale_timeout: float = 30.0):
+    """Cross-platform atomic file lock supporting POSIX (fcntl) and Windows (O_EXCL atomic spinlock with stale lock detection)."""
     lock_file = lock_path.with_suffix(lock_path.suffix + ".lock")
     start_time = time.time()
     acquired = False
@@ -56,6 +56,16 @@ def file_lock(lock_path: Path, timeout: float = 5.0):
                 acquired = True
                 break
             except (FileExistsError, OSError):
+                # Stale lock recovery on Windows when a previous process crashed
+                try:
+                    if lock_file.exists():
+                        mtime = os.path.getmtime(lock_file)
+                        if time.time() - mtime > stale_timeout:
+                            lock_file.unlink(missing_ok=True)
+                            continue
+                except Exception:
+                    pass
+
                 if time.time() - start_time > timeout:
                     raise TimeoutError(f"Zero-Scan: Timed out waiting for file lock on {lock_path}")
                 time.sleep(0.05)
@@ -507,7 +517,7 @@ def cmd_validate(args: argparse.Namespace) -> int:
         print(f"  ⚠️  [WARNING] {w}")
 
     if is_valid:
-        print(f"  ✅ [PASS] Project Memory is 100% compliant with V2.1 specification.")
+        print(f"  ✅ [PASS] Project Memory is 100% compliant with V{SPECIFICATION_VERSION} specification.")
         return 0
     else:
         for e in errors:
