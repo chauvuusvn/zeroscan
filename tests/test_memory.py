@@ -191,6 +191,29 @@ class TestProjectMemoryEngine(unittest.TestCase):
         errs_invalid = memory.validate_pure_python_schema(invalid_data, test_schema)
         self.assertTrue(len(errs_invalid) >= 3)
 
+    def test_resolve_merge_conflicts(self):
+        """Verify automatic Git merge conflict resolution in ledger and state."""
+        ledger_path = self.agent_dir / "TASK_LEDGER.jsonl"
+        conflict_ledger = (
+            "<<<<<<< HEAD\n"
+            '{"task_id": "T1", "desc": "Feature A"}\n'
+            '{"task_id": "T2", "desc": "Feature B"}\n'
+            "=======\n"
+            '{"task_id": "T1", "desc": "Feature A"}\n'
+            '{"task_id": "T3", "desc": "Feature C"}\n'
+            ">>>>>>> branch-b\n"
+        )
+        ledger_path.write_text(conflict_ledger, encoding="utf-8")
+
+        ok, actions = memory.resolve_merge_conflicts(self.agent_dir)
+        self.assertTrue(ok)
+        clean_content = ledger_path.read_text(encoding="utf-8")
+        self.assertNotIn("<<<<<<<", clean_content)
+        self.assertIn("T1", clean_content)
+        self.assertIn("T2", clean_content)
+        self.assertIn("T3", clean_content)
+
+
 
 
 if __name__ == "__main__":

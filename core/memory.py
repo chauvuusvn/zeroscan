@@ -713,30 +713,114 @@ def cmd_add_decision(args: argparse.Namespace) -> int:
 
 
 def install_git_hooks(repo_root: Path) -> Tuple[bool, str]:
-    """Install lightweight post-commit git hook to auto-sync Zero-Scan state."""
+    """Install lightweight git hooks (post-commit, post-checkout, post-merge) to auto-sync Zero-Scan state."""
     git_dir = repo_root / ".git"
     if not git_dir.is_dir():
         return False, f"Directory '{repo_root}' is not a Git repository (.git not found)."
 
     hooks_dir = git_dir / "hooks"
     hooks_dir.mkdir(parents=True, exist_ok=True)
-    post_commit = hooks_dir / "post-commit"
 
     hook_script = """#!/usr/bin/env sh
-# Zero-Scan Git Post-Commit Auto-Sync Hook (v2.2.1)
-# Auto-syncs BOOT.md and verified_commit on every git commit.
+# Zero-Scan Git Auto-Sync Hook (v2.2.1)
+# Synchronizes BOOT.md and verified_commit on commit, checkout, and merge.
 
 if command -v zeroscan >/dev/null 2>&1; then
     zeroscan sync --target "$PWD" >/dev/null 2>&1 || true
 fi
 """
-    post_commit.write_text(hook_script, encoding="utf-8")
-    try:
-        mode = post_commit.stat().st_mode
-        post_commit.chmod(mode | 0o111)  # make executable
-    except Exception:
-        pass
-    return True, f"Successfully installed Zero-Scan post-commit hook at {post_commit}"
+    installed_hooks = []
+    for hook_name in ["post-commit", "post-checkout", "post-merge"]:
+        hook_path = hooks_dir / hook_name
+        hook_path.write_text(hook_script, encoding="utf-8")
+        try:
+            mode = hook_path.stat().st_mode
+            hook_path.chmod(mode | 0o111)  # make executable
+        except Exception:
+            pass
+        installed_hooks.append(hook_name)
+
+    return True, f"Successfully installed Zero-Scan hooks ({', '.join(installed_hooks)}) in {hooks_dir}"
+
+
+def resolve_merge_conflicts(agent_dir: Path) -> Tuple[bool, List[str]]:
+    """Automatically resolve Git merge conflicts in TASK_LEDGER.jsonl and PROJECT_STATE.json."""
+    actions: List[str] = []
+    
+    # 1. Resolve TASK_LEDGER.jsonl conflicts
+    ledger_file = agent_dir / "TASK_LEDGER.jsonl"
+    if ledger_file.is_file():
+        try:
+            raw_text = ledger_file.read_text(encoding="utf-8")
+            if "<<<<<<<" in raw_text or "=======" in raw_text or ">>>>>>>" in raw_text:
+                clean_entries = []
+                seen_ids = set()
+                for line in raw_text.splitlines():
+                    line = line.strip()
+                    if not line or line.startswith("<<<<<<<") or line.startswith("=======") or line.startswith(">>>>>>>"):
+                        continue
+                    try:
+                        entry = json.loads(line)
+                        tid = entry.get("task_id") or entry.get("id") or json.dumps(entry, sort_keys=True)
+                        if tid not in seen_ids:
+                            seen_ids.add(tid)
+                            clean_entries.append(entry)
+                    except Exception:
+                        pass
+                
+                with open(ledger_file, "w", encoding="utf-8") as f:
+                    for entry in clean_entries:
+                        f.write(json.dumps(entry, ensure_ascii=False) + "\n")
+                actions.append(f"Deduplicated and merged {len(clean_entries)} task records in TASK_LEDGER.jsonl")
+        except Exception as e:
+            actions.append(f"Error resolving ledger conflicts: {e}")
+
+    # 2. Resolve PROJECT_STATE.json conflicts
+    state_file = agent_dir / "PROJECT_STATE.json"
+    if state_file.is_file():
+        try:
+            state_text = state_file.read_text(encoding="utf-8")
+            if "<<<<<<<" in state_text or "=======" in state_text or ">>>>>>>" in state_text:
+                # Extract clean JSON lines or restore from backup / git HEAD
+                repo_root = agent_dir.parent
+                head_sha = get_git_commit_hash(repo_root) or "0000000"
+                branch = get_git_branch(repo_root) or "master"
+                
+                state = load_json(state_file, default={})
+                if not state or not isinstance(state, dict) or "project_name" not in state:
+                    bak_file = state_file.with_suffix(".json.bak")
+                    if bak_file.is_file():
+                        state = load_json(bak_file, default={})
+                
+                if state:
+                    state["verified_commit"] = head_sha
+                    state["active_branch"] = branch
+                    state["last_updated"] = datetime.now(timezone.utc).isoformat()
+                    metrics = calculate_metrics(agent_dir)
+                    state["metrics"] = {
+                        "bootstrap_context_bytes": metrics["bootstrap_context_bytes"],
+                        "total_agent_system_bytes": metrics["total_agent_system_bytes"],
+                        "completed_tasks_count": metrics["completed_tasks_count"],
+                    }
+                    save_json(state_file, state)
+                    actions.append("Reconstituted valid PROJECT_STATE.json from active Git HEAD")
+        except Exception as e:
+            actions.append(f"Error resolving state conflicts: {e}")
+
+    # 3. Synchronize BOOT.md
+    sync_boot_anchor(agent_dir)
+    actions.append("Synchronized Level-0 BOOT.md anchor")
+    return True, actions
+
+
+def cmd_resolve_conflict(args: argparse.Namespace) -> int:
+    """CLI handler to automatically resolve git merge conflicts in .agent/ state files."""
+    agent_dir = find_agent_dir(Path(args.target) if getattr(args, "target", None) else None)
+    ok, msgs = resolve_merge_conflicts(agent_dir)
+    print("🤝 [ZERO-SCAN MERGE RESOLUTION]")
+    for msg in msgs:
+        print(f"  ✅ {msg}")
+    return 0
 
 
 def cmd_install_hooks(args: argparse.Namespace) -> int:
@@ -754,6 +838,9 @@ def cmd_install_hooks(args: argparse.Namespace) -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Zero-Scan Project Memory V2.2.1 CLI Engine")
     subparsers = parser.add_subparsers(dest="command", help="Available commands")
+
+    p_resolve = subparsers.add_parser("resolve-conflict", help="Auto-resolve git merge conflicts in .agent/ state files")
+    p_resolve.add_argument("--target", "-t", type=str, help="Target repository or .agent directory")
 
     p_hooks = subparsers.add_parser("install-hooks", help="Install automated git post-commit auto-sync hook")
     p_hooks.add_argument("--target", "-t", type=str, help="Target repository root directory")
@@ -806,6 +893,8 @@ def main() -> int:
         return cmd_sync(args)
     elif args.command == "checkpoint":
         return cmd_checkpoint(args)
+    elif args.command == "resolve-conflict":
+        return cmd_resolve_conflict(args)
     elif args.command == "install-hooks":
         return cmd_install_hooks(args)
     elif args.command == "add-decision":
